@@ -1,0 +1,430 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 24704 >>
+stream
+BT
+/F1 10 Tf
+1 0 0 1 40 800 Tm
+12 TL
+(BBMS Backup Export) Tj
+0 -12 Td
+(Generated at: 2026-03-12T09:44:26+01:00) Tj
+0 -12 Td
+() Tj
+0 -12 Td
+(Table: backup_logs) Tj
+0 -12 Td
+(  id | file_name | file_path | file_size_bytes | status | message | uploaded_to_drive | created_at) Tj
+0 -12 Td
+(  1 | bbms_20260311_112602.sql | C:\\xampp\\htdocs\\Blood Bank Management System/backups/bbms_20260311_112602.sql | 0 | failed | mysqldump_error | 0 | 2026-03-11 15:26:02) Tj
+0 -12 Td
+(  2 | bbms_20260311_113054.sql | C:\\xampp\\htdocs\\Blood Bank Management System/backups/bbms_20260311_113054.sql | 0 | failed | mysqldump_error | 0 | 2026-03-11 15:30:54) Tj
+0 -12 Td
+(  3 | backup_20260222_082542.sql | /backups/backup_20260223_082542.sql | 266311 | failed | Backup failed | 0 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  4 | backup_20260309_082542.sql | /backups/backup_20260302_082542.sql | 1704825 | failed | Backup failed | 0 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  5 | backup_20260307_082542.sql | /backups/backup_20260302_082542.sql | 3225832 | success | Backup completed | 0 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  6 | backup_20260311_082542.sql | /backups/backup_20260303_082542.sql | 1888279 | failed | Backup failed | 0 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  7 | backup_20260308_082542.sql | /backups/backup_20260225_082542.sql | 1241586 | failed | Backup failed | 0 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  8 | backup_20260310_082542.sql | /backups/backup_20260220_082542.sql | 3611326 | failed | Backup failed | 0 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  9 | backup_20260308_082542.sql | /backups/backup_20260301_082542.sql | 531680 | failed | Backup failed | 0 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  10 | backup_20260309_082542.sql | /backups/backup_20260301_082542.sql | 1968319 | success | Backup completed | 1 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  11 | backup_20260306_082542.sql | /backups/backup_20260307_082542.sql | 1550621 | success | Backup completed | 1 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  12 | backup_20260305_082542.sql | /backups/backup_20260308_082542.sql | 453447 | failed | Backup failed | 0 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  13 | bbms_20260312_094420.pdf | C:\\xampp\\htdocs\\Blood Bank Management System/backups/bbms_20260312_094420.pdf | 24884 | success | ok | 0 | 2026-03-12 13:44:20) Tj
+0 -12 Td
+() Tj
+0 -12 Td
+(Table: billing_records) Tj
+0 -12 Td
+(  id | invoice_no | patient_id | issuance_id | amount | discount | status | issued_on | paid_on | created_at) Tj
+0 -12 Td
+(  1 | INV-00001 | 1 | 1 | 14291.00 | 100.00 | paid | 2026-03-11 08:25:42 | 2026-03-12 08:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  2 | INV-00002 | 2 | 2 | 11825.00 | 214.00 | paid | 2026-03-10 08:25:42 | 2026-03-12 12:53:59 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  4 | INV-00004 | 4 | 4 | 11508.00 | 104.00 | paid | 2026-02-19 08:25:42 | 2026-02-20 08:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  5 | INV-00005 | 5 | 5 | 5653.00 | 146.00 | paid | 2026-02-22 08:25:42 | 2026-02-23 08:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  7 | INV-00007 | 7 | 7 | 8010.00 | 243.00 | paid | 2026-02-12 08:25:42 | 2026-02-13 08:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  8 | INV-00008 | 8 | 8 | 9052.00 | 468.00 | unpaid | 2026-02-18 08:25:42 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+() Tj
+0 -12 Td
+(Table: blood_issuance) Tj
+0 -12 Td
+(  id | inventory_id | patient_id | issued_by | issue_date | units_issued | crossmatch_result | reactions_reported | status | remarks | created_at | updated_at) Tj
+0 -12 Td
+(  1 | 1 | 1 |  | 2026-03-11 08:25:42 | 1 | compatible | 0 | issued | Issued for treatment | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  2 | 2 | 2 |  | 2026-03-10 08:25:42 | 1 | compatible | 0 | issued | Issued for treatment | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  4 | 4 | 4 |  | 2026-02-19 08:25:42 | 1 | compatible | 0 | issued | Issued for treatment | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  5 | 5 | 5 |  | 2026-02-22 08:25:42 | 1 | compatible | 0 | issued | Issued for treatment | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  7 | 7 | 7 |  | 2026-02-12 08:25:42 | 1 | compatible | 0 | issued | Issued for treatment | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  8 | 8 | 8 |  | 2026-02-18 08:25:42 | 1 | compatible | 0 | issued | Issued for treatment | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+() Tj
+0 -12 Td
+(Table: blood_pricing) Tj
+0 -12 Td
+(  id | component | blood_group | unit_cost | effective_from | created_by | created_at) Tj
+0 -12 Td
+(  2 | Whole Blood | A+ | 0.01 | 0000-00-00 | 1 | 2026-03-11 15:16:29) Tj
+0 -12 Td
+(  3 | Whole Blood | A+ | 8861.00 | 2026-02-10 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  4 | Whole Blood | B+ | 3967.00 | 2026-02-10 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  5 | Whole Blood | O+ | 5553.00 | 2026-02-10 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  6 | Whole Blood | AB+ | 6335.00 | 2026-02-10 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  7 | PRBC | A+ | 4359.00 | 2026-02-10 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  8 | PRBC | B+ | 6138.00 | 2026-02-10 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  9 | PRBC | O+ | 6524.00 | 2026-02-10 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  10 | PRBC | AB+ | 3528.00 | 2026-02-10 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  11 | Platelets | A+ | 4098.00 | 2026-02-10 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  12 | Platelets | B+ | 4370.00 | 2026-02-10 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  13 | FFP | A- | 0.03 | 2026-03-12 | 1 | 2026-03-12 12:52:50) Tj
+0 -12 Td
+() Tj
+0 -12 Td
+(Table: collections) Tj
+0 -12 Td
+(  id | collection_code | donor_id | collected_by | collection_date | bag_type | volume_ml | collection_site | remarks | status | created_at | updated_at) Tj
+0 -12 Td
+(  1 | C-TEST-001 | 1 |  | 2025-12-29 08:25:42 | 450ml | 450 | Main Center | Walk-in donor | pending_screen | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  2 | C-TEST-002 | 3 |  | 2026-02-03 08:25:42 | 350ml | 350 | Mobile Camp | Camp drive | safe | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  4 | C-TEST-004 | 6 |  | 2026-01-22 08:25:42 | 450ml | 450 | City Hospital | Routine donation | safe | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  5 | C-TEST-005 | 7 |  | 2026-02-22 08:25:42 | 350ml | 350 | Mobile Camp | Routine donation | stored | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  7 | C-TEST-007 | 9 |  | 2026-01-06 08:25:42 | 450ml | 450 | City Hospital | Routine donation | screening | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  8 | C-TEST-008 | 10 |  | 2025-12-14 08:25:42 | 450ml | 450 | Main Center | Camp drive | screening | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  9 | C-TEST-009 | 11 |  | 2026-01-16 08:25:42 | 350ml | 350 | City Hospital | Walk-in donor | pending_screen | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  10 | C-TEST-010 | 12 |  | 2026-03-12 08:25:42 | 450ml | 450 | Main Center | Camp drive | screening | 2026-03-12 12:25:42 | 2026-03-12 13:40:16) Tj
+0 -12 Td
+(  11 | C-TEST-011 | 13 |  | 2026-02-10 08:25:42 | 350ml | 350 | Mobile Camp | Walk-in donor | pending_screen | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  12 | C-TEST-012 | 14 |  | 2026-01-31 08:25:42 | 450ml | 450 | Mobile Camp | Camp drive | safe | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+() Tj
+0 -12 Td
+(Table: donors) Tj
+0 -12 Td
+(  id | donor_code | cnic | full_name | gender | date_of_birth | blood_group | phone | email | address | city | last_donation_at | is_eligible | created_by | created_at | updated_at) Tj
+0 -12 Td
+(  1 | D-180721 | 4220168582915 | Musab Hussain | male | 2015-05-04 | A+ |  |  |  |  |  | 1 | 1 | 2026-03-11 14:45:06 | 2026-03-11 14:45:06) Tj
+0 -12 Td
+(  3 | D-79E948 | 4220168582918 | Usama Akbar | male | 2026-03-11 | A- | 03098643058 | usamaakbarjaatt@gmail.com | Jahanian, Punjab, Pakistan | Jahanian |  | 1 | 1 | 2026-03-11 15:03:32 | 2026-03-11 15:03:40) Tj
+0 -12 Td
+(  6 | D-TEST-005 | 35202-1000005-8 | Usman Ahmed | female | 1990-03-12 | O- | +92-3184229571 | usman.ahmed5@example.com | 709 Road, Multan | Multan | 2026-02-28 | 1 |  | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  7 | D-TEST-006 | 35202-1000006-6 | Ali Chaudhry | male | 1982-03-12 | B+ | +92-3176523746 | ali.chaudhry6@example.com | 706 Street, Karachi | Karachi |  | 1 |  | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  8 | D-TEST-007 | 35202-1000007-8 | Hiba Qureshi | male | 1972-03-12 | A- | +92-3214434397 | hiba.qureshi7@example.com | 246 Road, Karachi | Karachi | 2026-03-05 | 1 |  | 2026-03-12 12:25:42 | 2026-03-12 13:22:34) Tj
+0 -12 Td
+(  9 | D-TEST-008 | 35202-1000008-2 | Hira Ahmed | female | 1993-03-12 | B+ | +92-3218507433 | hira.ahmed8@example.com | 977 Avenue, Faisalabad | Faisalabad | 2026-01-27 | 1 |  | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  10 | D-TEST-009 | 35202-1000009-7 | Fatima Khan | female | 1988-03-12 | B- | +92-3333959967 | fatima.khan9@example.com | 427 Road, Rawalpindi | Rawalpindi |  | 1 |  | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  11 | D-TEST-010 | 35202-1000010-1 | Hamza Javed | male | 1983-03-12 | B+ | +92-3453396675 | hamza.javed10@example.com | 263 Street, Lahore | Lahore |  | 1 |  | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  12 | D-TEST-011 | 35202-1000011-4 | Hiba Butt | female | 1993-03-12 | A+ | +92-3145234250 | hiba.butt11@example.com | 606 Road, Islamabad | Islamabad | 2026-03-12 | 1 |  | 2026-03-12 12:25:42 | 2026-03-12 13:40:16) Tj
+0 -12 Td
+(  13 | D-TEST-012 | 35202-1000012-7 | Farhan Butt | female | 2001-03-12 | O- | +92-3136536609 | farhan.butt12@example.com | 825 Avenue, Faisalabad | Faisalabad | 2025-12-27 | 1 |  | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  14 | D-TEST-013 | 35202-1000013-6 | Sana Raza | other | 1983-03-12 | A- | +92-3375802441 | sana.raza13@example.com | 642 Street, Lahore | Lahore |  | 1 |  | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+() Tj
+0 -12 Td
+(Table: expenses) Tj
+0 -12 Td
+(  id | category | description | amount | incurred_on | recorded_by | created_at) Tj
+0 -12 Td
+(  1 | Boold | Testing  | 1000.00 | 2026-03-11 | 1 | 2026-03-11 14:30:57) Tj
+0 -12 Td
+(  2 | 1qq | testing | 12.00 | 2026-03-11 | 1 | 2026-03-11 15:16:47) Tj
+0 -12 Td
+(  3 | Transport | Courier charges | 13004.45 | 2025-12-26 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  4 | Transport | Equipment service | 5846.47 | 2026-01-19 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  5 | Transport | Routine purchase | 21391.41 | 2026-03-06 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  6 | Utilities | Courier charges | 3185.69 | 2025-12-17 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  7 | Transport | Courier charges | 6240.29 | 2025-12-18 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  8 | Maintenance | Routine purchase | 19656.89 | 2025-12-15 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  9 | Transport | Monthly bill | 8187.40 | 2026-01-05 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  10 | Utilities | Monthly bill | 4947.77 | 2026-01-30 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  11 | Supplies | Routine purchase | 22549.74 | 2026-01-24 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  12 | Utilities | Equipment service | 20563.26 | 2026-03-05 |  | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  13 | abc | 33 | 13.00 | 2026-03-12 | 1 | 2026-03-12 12:53:42) Tj
+0 -12 Td
+() Tj
+0 -12 Td
+(Table: inventory) Tj
+0 -12 Td
+(  id | collection_id | component | blood_group | volume_ml | units_available | storage_location | expiry_date | status | created_at | updated_at) Tj
+0 -12 Td
+(  1 | 1 | Whole Blood | A+ | 411 | 1 | Shelf B | 2026-02-09 | issued | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  2 | 2 | Whole Blood | A- | 387 | 1 | Shelf B | 2026-03-17 | issued | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  4 | 4 | Platelets | O- | 351 | 1 | Shelf B | 2026-01-27 | issued | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  5 | 5 | PRBC | B+ | 390 | 1 | Freezer A | 2026-04-05 | issued | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  7 | 7 | FFP | B+ | 385 | 1 | Freezer A | 2027-01-06 | issued | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  8 | 8 | Platelets | B- | 342 | 1 | Freezer A | 2025-12-19 | issued | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  9 | 9 | Whole Blood | B+ | 248 | 1 | Rack C | 2026-02-27 | reserved | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  10 | 10 | Platelets | A+ | 223 | 1 | Freezer A | 2026-03-03 | reserved | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  11 | 11 | FFP | O- | 427 | 1 | Freezer A | 2027-02-10 | reserved | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  12 | 12 | FFP | A- | 315 | 1 | Freezer A | 2027-01-31 | available | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+() Tj
+0 -12 Td
+(Table: logs) Tj
+0 -12 Td
+(  id | user_id | action | entity_type | entity_id | ip_address | user_agent | created_at) Tj
+0 -12 Td
+(  1 | 1 | login | user | 1 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-10 15:13:03) Tj
+0 -12 Td
+(  2 | 1 | login | user | 1 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-10 15:15:33) Tj
+0 -12 Td
+(  3 | 1 | login | user | 1 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-10 15:16:51) Tj
+0 -12 Td
+(  4 | 1 | login | user | 1 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-10 15:48:10) Tj
+0 -12 Td
+(  5 | 1 | login | user | 1 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-11 14:23:05) Tj
+0 -12 Td
+(  6 | 1 | create | donor | 1 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-11 14:45:06) Tj
+0 -12 Td
+(  7 | 1 | create | donor | 3 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-11 15:03:32) Tj
+0 -12 Td
+(  8 |  | update | donor | 3 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-11 15:03:40) Tj
+0 -12 Td
+(  9 | 1 | login | user | 1 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-11 15:24:49) Tj
+0 -12 Td
+(  10 |  | backup | system |  | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-11 15:26:02) Tj
+0 -12 Td
+(  11 | 1 | create | donor | 4 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-11 15:26:59) Tj
+0 -12 Td
+(  12 |  | backup | system |  | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-11 15:30:54) Tj
+0 -12 Td
+(  13 | 1 | login | user | 1 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 08:34:34) Tj
+0 -12 Td
+(  14 |  | update | donor | 4 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 08:51:28) Tj
+0 -12 Td
+(  15 |  | delete | donor | 4 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 08:51:35) Tj
+0 -12 Td
+(  16 | 1 | login | user | 1 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 09:38:31) Tj
+0 -12 Td
+(  17 | 1 | login | user | 1 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 11:56:38) Tj
+0 -12 Td
+(  18 |  | update | donor | 5 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 12:30:46) Tj
+0 -12 Td
+(  19 |  | update | donor | 5 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 12:31:01) Tj
+0 -12 Td
+(  20 |  | update | donor | 5 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 12:47:20) Tj
+0 -12 Td
+(  21 | 1 | login | user | 1 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 13:03:58) Tj
+0 -12 Td
+(  22 |  | update | collection | 6 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 13:22:34) Tj
+0 -12 Td
+(  23 |  | update | collection | 6 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 13:22:37) Tj
+0 -12 Td
+(  24 |  | update | collection | 6 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 13:22:46) Tj
+0 -12 Td
+(  25 |  | update | collection | 6 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 13:23:05) Tj
+0 -12 Td
+(  26 |  | update | donor | 5 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 13:39:19) Tj
+0 -12 Td
+(  27 |  | delete | donor | 5 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 13:39:22) Tj
+0 -12 Td
+(  28 |  | update | collection | 6 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 13:39:44) Tj
+0 -12 Td
+(  29 |  | delete | collection | 6 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 13:39:55) Tj
+0 -12 Td
+(  30 |  | update | collection | 10 | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 13:40:16) Tj
+0 -12 Td
+(  31 |  | backup | system |  | ::1 | Mozilla/5.0 \(Windows NT 10.0; Win64; x64\) AppleWebKit/537.36 \(KHTML, like Gecko\) Chrome/145.0.0.0 Safari/537.36 | 2026-03-12 13:44:20) Tj
+0 -12 Td
+() Tj
+0 -12 Td
+(Table: notifications) Tj
+0 -12 Td
+(  id | user_id | type | title | message | is_read | created_at) Tj
+0 -12 Td
+(  2 |  | info | Hy doneers  | testing testing | 0 | 2026-03-11 14:39:29) Tj
+0 -12 Td
+(  3 |  | warning | 12223 | ww | 0 | 2026-03-11 14:39:48) Tj
+0 -12 Td
+(  4 |  | warning | Maintenance | New donor registrations this week. | 1 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  5 |  | info | System Alert | Please verify inventory counts. | 1 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  6 |  | warning | Reminder | Monthly report is ready for review. | 0 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  7 |  | success | Reminder | Scheduled maintenance tonight at 10 PM. | 0 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  8 |  | success | Maintenance | Please verify inventory counts. | 0 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  9 |  | info | Reminder | Monthly report is ready for review. | 0 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  10 |  | danger | System Alert | New donor registrations this week. | 0 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  11 |  | danger | Report Ready | New donor registrations this week. | 1 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  12 |  | info | Reminder | New donor registrations this week. | 0 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  13 |  | danger | Maintenance | New donor registrations this week. | 0 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  14 |  | warning | testing | tesing | 0 | 2026-03-12 13:12:02) Tj
+0 -12 Td
+() Tj
+0 -12 Td
+(Table: patients) Tj
+0 -12 Td
+(  id | patient_code | full_name | gender | date_of_birth | blood_group | diagnosis | attending_doctor_id | hospital_name | status | created_at | updated_at) Tj
+0 -12 Td
+(  1 | PAT-651336 | dumy | female | 2026-03-11 | B+ | testing |  | dumyyy | active | 2026-03-11 15:15:26 | 2026-03-11 15:15:26) Tj
+0 -12 Td
+(  2 | PAT-73BE5C | q | male | 2026-03-11 | A+ | q |  | q | active | 2026-03-11 15:16:07 | 2026-03-11 15:16:07) Tj
+0 -12 Td
+(  3 | PAT-0CCB6B | abv | male | 2026-03-11 | O+ |  |  |  | active | 2026-03-11 15:28:10 | 2026-03-11 15:28:10) Tj
+0 -12 Td
+(  4 | P-TEST-004 | Fatima Siddiqui | other | 2014-03-12 | B+ | Anemia |  | Regional Health Center | active | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  5 | P-TEST-005 | Fatima Siddiqui | female | 1974-03-12 | O- | Thalassemia |  | Central Medical | discharged | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  6 | P-TEST-006 | Farhan Javed | male | 1959-03-12 | B- | Thalassemia |  | Regional Health Center | active | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  7 | P-TEST-007 | Ali Chaudhry | other | 1957-03-12 | O+ | Postpartum hemorrhage |  | City Hospital | discharged | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  8 | P-TEST-008 | Iqra Butt | female | 2000-03-12 | AB+ | Anemia |  | Central Medical | discharged | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  9 | P-TEST-009 | Ali Sheikh | female | 1978-03-12 | A+ | Surgery |  | City Hospital | active | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  10 | P-TEST-010 | Saad Sheikh | other | 2017-03-12 | AB+ | Postpartum hemorrhage |  | City Hospital | discharged | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  11 | P-TEST-011 | Farhan Javed | male | 2013-03-12 | AB+ | Postpartum hemorrhage |  | Central Medical | active | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  12 | P-TEST-012 | Noor Raza | other | 1986-03-12 | B+ | Surgery |  | City Hospital | active | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  13 | PAT-05B4FF | abc | male | 2026-03-12 | AB+ | w |  | www | active | 2026-03-12 12:50:47 | 2026-03-12 12:50:47) Tj
+0 -12 Td
+() Tj
+0 -12 Td
+(Table: requests) Tj
+0 -12 Td
+(  \(no data\)) Tj
+0 -12 Td
+() Tj
+0 -12 Td
+(Table: screening_tests) Tj
+0 -12 Td
+(  id | collection_id | tested_by | test_date | hbsag | hcv | hiv | malaria | syphilis | blood_group_confirmed | hemoglobin_level | result_status | remarks | created_at | updated_at) Tj
+0 -12 Td
+(  1 | 1 |  | 2026-02-06 08:25:42 | 0 | 0 | 0 | 0 | 0 | A+ | 12.7 | pending | All clear | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  2 | 2 |  | 2026-01-25 08:25:42 | 0 | 0 | 0 | 0 | 0 | A- | 14.0 | safe | All clear | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  4 | 4 |  | 2026-02-17 08:25:42 | 1 | 1 | 0 | 0 | 0 | O- | 15.1 | rejected | Reactive marker detected | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  5 | 5 |  | 2026-03-03 08:25:42 | 0 | 0 | 0 | 0 | 0 | B+ | 14.6 | pending | All clear | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  7 | 7 |  | 2026-02-25 08:25:42 | 0 | 0 | 0 | 0 | 0 | B+ | 15.7 | safe | All clear | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  8 | 8 |  | 2026-01-28 08:25:42 | 1 | 1 | 0 | 0 | 0 | B- | 14.7 | rejected | Reactive marker detected | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  9 | 9 |  | 2026-03-09 08:25:42 | 0 | 0 | 0 | 0 | 0 | B+ | 12.5 | safe | All clear | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  10 | 10 |  | 2026-01-25 08:25:42 | 0 | 0 | 0 | 0 | 0 | A+ | 15.6 | pending | All clear | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  11 | 11 |  | 2026-02-18 08:25:42 | 1 | 1 | 0 | 0 | 0 | O- | 12.9 | rejected | Reactive marker detected | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+(  12 | 12 |  | 2026-02-26 08:25:42 | 1 | 1 | 0 | 0 | 0 | A- | 13.2 | rejected | Reactive marker detected | 2026-03-12 12:25:42 | 2026-03-12 12:25:42) Tj
+0 -12 Td
+() Tj
+0 -12 Td
+(Table: transactions) Tj
+0 -12 Td
+(  \(no data\)) Tj
+0 -12 Td
+() Tj
+0 -12 Td
+(Table: users) Tj
+0 -12 Td
+(  id | name | username | phone | role | password_hash | status | last_login_at | created_at | updated_at) Tj
+0 -12 Td
+(  1 | Admin | admin |  | admin | $2y$10$CC5/ZXGaAiG6Fbq8nWocCulmDFWCHUNUJc1f45WUvT51uwBMzltGm | active | 2026-03-12 13:03:58 | 2026-03-10 15:00:07 | 2026-03-12 13:03:58) Tj
+0 -12 Td
+() Tj
+0 -12 Td
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+25067
+%%EOF

@@ -1,0 +1,48 @@
+# Node modules
+node_modules/
+frontend/node_modules/
+
+# Build files
+dist/
+frontend/dist/
+build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Database
+database/*.sql
+*.sql
+
+# Backups
+backups/
+
+# XAMPP / system files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Cache
+.cache/
+.tmp/
+
+# PHP vendor
+vendor/
+
+# OS files
+*.swp
+*.swo

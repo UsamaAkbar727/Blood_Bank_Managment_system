@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blood Bank Management System</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 500px;
+        }
+        h1 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .logo {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            display: inline-block;
+            background: #4299e1;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background: #3182ce;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(66, 153, 225, 0.4);
+        }
+        .btn-secondary {
+            background: #4a5568;
+        }
+        .btn-secondary:hover {
+            background: #2d3748;
+        }
+        .info {
+            background: #ebf8ff;
+            border-left: 4px solid #4299e1;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+            border-radius: 5px;
+        }
+        .info h3 {
+            color: #2b6cb0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .info p {
+            color: #2c5282;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .credentials {
+            background: #faf5ff;
+            border: 1px solid #e9d8fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .credentials h4 {
+            color: #6b46c1;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .cred-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #e9d8fd;
+        }
+        .cred-item:last-child {
+            border-bottom: none;
+        }
+        .cred-label {
+            color: #553c9a;
+            font-weight: 600;
+        }
+        .cred-value {
+            color: #2d3748;
+            font-family: monospace;
+            background: #faf5ff;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .status.success {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            color: #22543d;
+        }
+        .status.warning {
+            background: #fffaf0;
+            border: 1px solid #fbd38d;
+            color: #744210;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🏥</div>
+        <h1>Blood Bank Management System</h1>
+        <p class="subtitle">Complete Healthcare Blood Management Solution</p>
+        
+        <div class="info">
+            <h3>📋 Installation Status</h3>
+            <p>Before accessing the system, please run the installation wizard to setup the database and create default admin user.</p>
+        </div>
+
+        <div class="credentials">
+            <h4>🔐 Default Login Credentials</h4>
+            <div class="cred-item">
+                <span class="cred-label">Username:</span>
+                <span class="cred-value">admin</span>
+            </div>
+            <div class="cred-item">
+                <span class="cred-label">Password:</span>
+                <span class="cred-value">admin123</span>
+            </div>
+        </div>
+
+        <a href="install.php" class="btn">🚀 Install System</a>
+        <a href="frontend/dist/index.html" class="btn btn-secondary">📱 Launch App</a>
+
+        <div id="status-check" class="status" style="display:none;"></div>
+    </div>
+
+    <script>
+        // Check if system is installed
+        fetch('api/test.php')
+            .then(res => res.json())
+            .then(data => {
+                const statusDiv = document.getElementById('status-check');
+                statusDiv.style.display = 'block';
+                
+                if (data.summary.total_errors === 0) {
+                    statusDiv.className = 'status success';
+                    statusDiv.innerHTML = '✅ System Status: All checks passed! Ready to use.';
+                } else {
+                    statusDiv.className = 'status warning';
+                    statusDiv.innerHTML = `⚠️ System Status: ${data.summary.total_errors} issue(s) found. Please run installation.`;
+                }
+            })
+            .catch(err => {
+                console.error('Status check failed:', err);
+            });
+    </script>
+</body>
+</html>
