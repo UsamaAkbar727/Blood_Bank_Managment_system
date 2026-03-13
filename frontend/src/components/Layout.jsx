@@ -31,8 +31,8 @@ function Sidebar() {
   };
 
   return (
-    <aside className="hidden md:flex w-64 flex-col bg-white border-r border-slate-200">
-      <div className="px-4 py-5 border-b border-slate-200">
+    <aside className="hidden md:flex fixed left-0 top-0 w-64 h-screen flex-col bg-white border-r border-slate-200 z-20">
+      <div className="px-4 py-5 border-b border-slate-200 flex-shrink-0">
         <div className="text-lg font-semibold text-slate-900">Blood Bank</div>
         <div className="text-xs text-slate-500 mt-1">{user?.username || 'User'}</div>
       </div>
@@ -93,10 +93,10 @@ function Sidebar() {
           ),
         )}
       </nav>
-      <div className="p-3 border-t border-slate-200">
+      <div className="p-3 pb-5 border-t border-slate-200 mt-auto flex-shrink-0">
         <button
           onClick={handleLogout}
-          className="w-full bg-red-500 hover:bg-red-600 text-white text-sm py-2 rounded-lg transition-colors"
+          className="w-full bg-red-500 hover:bg-red-600 text-white text-sm py-2 rounded-lg transition-colors font-medium"
         >
           Logout
         </button>
@@ -126,9 +126,9 @@ function TopBar() {
 
 export function Shell() {
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex h-screen overflow-hidden bg-slate-50">
       <Sidebar />
-      <div className="flex-1 flex flex-col">
+      <div className="flex flex-col flex-1 md:ml-64 h-screen overflow-y-auto">
         <TopBar />
         <main className="p-4 md:p-6 space-y-4">
           <Outlet />

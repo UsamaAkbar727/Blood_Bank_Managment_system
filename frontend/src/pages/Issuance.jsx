@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { request } from '../lib/api';
 import Modal from '../components/Modal';
 import Toast from '../components/Toast';
@@ -124,9 +124,9 @@ export default function Issuance() {
   );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
-      <div className="lg:col-span-3 card p-4 flex items-center justify-between gap-3 flex-wrap">
+      <div className="lg:col-span-2 card p-4 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
           <input
             type="search"
@@ -168,7 +168,7 @@ export default function Issuance() {
         <div className="text-xs text-slate-500">Select patient to see compatible units.</div>
       </div>
 
-      <div className="lg:col-span-2 card p-4">
+      <div className="card p-4 w-full min-w-0">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-semibold text-slate-900">Compatible Available Units (FIFO)</h3>
           {selectedPatient && <span className="text-xs text-slate-500">Patient: {selectedPatient.blood_group}</span>}
@@ -212,7 +212,7 @@ export default function Issuance() {
         </div>
       </div>
 
-      <div className="card p-4 lg:col-span-1">
+      <div className="card p-4 w-full min-w-0">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-semibold text-slate-900">Issued History</h3>
           <input

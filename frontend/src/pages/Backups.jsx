@@ -1,5 +1,5 @@
-﻿import React, { useEffect, useState } from 'react';
-import { request } from '../lib/api';
+import React, { useEffect, useState } from 'react';
+import { request, classNames } from '../lib/api';
 import Toast from '../components/Toast';
 
 function formatSize(bytes) {
@@ -9,21 +9,25 @@ function formatSize(bytes) {
   return `${(bytes / 1024 ** i).toFixed(1)} ${units[i]}`;
 }
 
-function pathRelative(fullPath) {
-  const idx = fullPath.indexOf('backups');
-  return idx >= 0 ? '/' + fullPath.substring(idx).replace(/\\\\/g, '/').replace(/\\/g, '/') : '#';
-}
 
 export default function Backups() {
   const [rows, setRows] = useState([]);
   const [message, setMessage] = useState('');
   const [running, setRunning] = useState(false);
   const [format, setFormat] = useState('excel');
+  const [useDrive, setUseDrive] = useState(false);
+  const [driveConnected, setDriveConnected] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'info' });
 
   const load = async () => {
     const res = await request('/api/backups/index.php');
     setRows(res.data || []);
+    if (res.drive_connected !== undefined) {
+      setDriveConnected(res.drive_connected);
+      if (res.drive_connected && !rows.length) {
+        setUseDrive(true);
+      }
+    }
   };
 
   useEffect(() => {
@@ -36,7 +40,7 @@ export default function Backups() {
     setRunning(true);
     setMessage('Running backup...');
     try {
-      const res = await request(`/api/backups/index.php?format=${encodeURIComponent(format)}`, { method: 'POST' });
+      const res = await request(`/api/backups/index.php?format=${encodeURIComponent(format)}&drive=${useDrive}`, { method: 'POST' });
       setMessage(res.data?.status === 'success' ? 'Backup completed successfully.' : 'Backup failed. Please try again.');
       setToast({ message: res.data?.status === 'success' ? 'Backup completed successfully.' : 'Backup failed. Please try again.', type: res.data?.status === 'success' ? 'success' : 'error' });
       load();
@@ -56,7 +60,23 @@ export default function Backups() {
           <h3 className="font-semibold text-slate-900">Automatic Daily Backups</h3>
           <p className="text-sm text-slate-500">Retention: last 3 days. Exports PDF/Excel; optional Google Drive upload.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <label
+            className={classNames(
+              'flex items-center gap-1.5 text-sm cursor-pointer whitespace-nowrap',
+              !driveConnected && 'opacity-50 cursor-not-allowed',
+            )}
+            title={!driveConnected ? 'Google Drive is not configured on the server.' : 'Backup to Google Drive'}
+          >
+            <input
+              type="checkbox"
+              checked={useDrive && driveConnected}
+              disabled={!driveConnected}
+              onChange={(e) => setUseDrive(e.target.checked)}
+              className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 disabled:bg-slate-100 disabled:cursor-not-allowed"
+            />
+            <span className="text-slate-700 font-medium">Google Drive</span>
+          </label>
           <select
             className="border border-slate-200 rounded-lg px-3 py-2 text-sm"
             value={format}
@@ -102,7 +122,11 @@ export default function Backups() {
                   <td className="px-4 py-2">{row.uploaded_to_drive ? 'Yes' : 'No'}</td>
                   <td className="px-4 py-2">
                     {row.status === 'success' ? (
-                      <a className="text-blue-600 text-sm" href={pathRelative(row.file_path)} download>
+                      <a
+                        className="text-blue-600 text-sm hover:underline"
+                        href={`/api/backups/download.php?file=${encodeURIComponent(row.file_name)}`}
+                        download
+                      >
                         Download
                       </a>
                     ) : (

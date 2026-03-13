@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { request } from '../lib/api';
+import Toast from '../components/Toast';
 
 export default function Logs() {
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState('');
+  const [toast, setToast] = useState({ message: '', type: 'info' });
 
   const load = async (q = '') => {
     const res = await request(`/api/logs/index.php?q=${encodeURIComponent(q)}`);
@@ -16,8 +18,22 @@ export default function Logs() {
     return () => clearInterval(id);
   }, [search]);
 
+  const handleDelete = async (id) => {
+    try {
+      await request('/api/logs/index.php', {
+        method: 'DELETE',
+        body: { id },
+      });
+      setToast({ message: 'Log entry deleted successfully.', type: 'success' });
+      load(search);
+    } catch (err) {
+      setToast({ message: err.message || 'Failed to delete log entry.', type: 'error' });
+    }
+  };
+
   return (
     <div className="space-y-3">
+      <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
       <div className="card p-4 flex items-center justify-between">
         <h3 className="font-semibold text-slate-900">Audit Logs</h3>
         <input
@@ -42,6 +58,7 @@ export default function Logs() {
                 <th className="px-4 py-2">Entity</th>
                 <th className="px-4 py-2">Entity ID</th>
                 <th className="px-4 py-2">IP</th>
+                <th className="px-4 py-2 text-right">Delete</th>
               </tr>
             </thead>
             <tbody>
@@ -53,11 +70,19 @@ export default function Logs() {
                   <td className="px-4 py-2">{r.entity_type}</td>
                   <td className="px-4 py-2">{r.entity_id ?? ''}</td>
                   <td className="px-4 py-2">{r.ip_address ?? ''}</td>
+                  <td className="px-4 py-2 text-right">
+                    <button
+                      onClick={() => handleDelete(r.id)}
+                      className="text-red-500 hover:text-red-700 text-sm font-medium"
+                    >
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td className="px-4 py-3 text-slate-500" colSpan={6}>
+                  <td className="px-4 py-3 text-slate-500" colSpan={7}>
                     No log entries
                   </td>
                 </tr>

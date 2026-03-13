@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import JsBarcode from 'jsbarcode';
 import { BrowserMultiFormatReader, BrowserCodeReader } from '@zxing/browser';
 import Modal from '../components/Modal';
@@ -17,6 +17,7 @@ export default function Barcodes() {
   const barcodeRef = useRef(null);
   const videoRef = useRef(null);
   const readerRef = useRef(null);
+  const controlsRef = useRef(null);
   const lastScanRef = useRef({ code: '', ts: 0 });
 
   const renderBarcode = () => {
@@ -41,6 +42,7 @@ export default function Barcodes() {
     }
     listDevices();
     return () => {
+      if (controlsRef.current) controlsRef.current.stop();
       if (readerRef.current) readerRef.current.reset();
       if (videoRef.current && videoRef.current.srcObject) {
         const tracks = videoRef.current.srcObject.getTracks();
@@ -54,8 +56,12 @@ export default function Barcodes() {
     if (!selectedCamera || !videoRef.current) return;
     setScanError('');
     setLastScan('');
+    if (controlsRef.current) {
+      controlsRef.current.stop();
+      controlsRef.current = null;
+    }
     if (readerRef.current) readerRef.current.reset();
-    if (videoRef.current.srcObject) {
+    if (videoRef.current && videoRef.current.srcObject) {
       const tracks = videoRef.current.srcObject.getTracks();
       tracks.forEach((t) => t.stop());
       videoRef.current.srcObject = null;
@@ -66,7 +72,8 @@ export default function Barcodes() {
     setCameraActive(true);
 
     reader
-      .decodeFromVideoDevice(selectedCamera, videoRef.current, (result) => {
+      .decodeFromVideoDevice(selectedCamera, videoRef.current, (result, err, controls) => {
+        if (controls) controlsRef.current = controls;
         if (!active || !result) return;
         const code = result.getText();
         const now = Date.now();
@@ -86,6 +93,10 @@ export default function Barcodes() {
   };
 
   const stopCamera = () => {
+    if (controlsRef.current) {
+      controlsRef.current.stop();
+      controlsRef.current = null;
+    }
     if (readerRef.current) readerRef.current.reset();
     if (videoRef.current && videoRef.current.srcObject) {
       const tracks = videoRef.current.srcObject.getTracks();
