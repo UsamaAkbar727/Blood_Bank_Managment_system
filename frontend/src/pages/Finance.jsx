@@ -1,9 +1,7 @@
-﻿import React, { useEffect, useState } from 'react';
-import { formatCurrency } from '../lib/api';
-import { request } from '../lib/api';
+import React, { useEffect, useState } from 'react';
+import { formatCurrency, request } from '../lib/api';
 import Modal from '../components/Modal';
 import Toast from '../components/Toast';
-import { useLocation, useNavigate } from 'react-router-dom';
 
 const blankPrice = {
   component: 'Whole Blood',
@@ -19,13 +17,7 @@ const blankExpense = {
   incurred_on: '',
 };
 
-export default function Finance() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const searchParams = new URLSearchParams(location.search);
-  const initialSection = searchParams.get('section') === 'expenses' ? 'expenses' : 'pricing';
-
-  const [tab, setTab] = useState(initialSection);
+export default function Finance({ section = 'pricing' }) {
   const [prices, setPrices] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [bills, setBills] = useState([]);
@@ -42,10 +34,12 @@ export default function Finance() {
     const res = await request('/api/finance/pricing.php');
     setPrices(res.data || []);
   };
+
   const loadExpenses = async () => {
     const res = await request('/api/finance/expenses.php');
     setExpenses(res.data || []);
   };
+
   const loadBills = async (q = '') => {
     const res = await request(`/api/finance/billing.php?q=${encodeURIComponent(q)}`);
     setBills(res.data || []);
@@ -65,18 +59,6 @@ export default function Finance() {
     }, 15000);
     return () => clearInterval(id);
   }, [billSearch]);
-
-  // keep tab in sync with URL query
-  useEffect(() => {
-    const section = new URLSearchParams(location.search).get('section');
-    const next = section === 'expenses' ? 'expenses' : 'pricing';
-    setTab(next);
-  }, [location.search]);
-
-  const setSection = (section) => {
-    navigate(`/finance?section=${section}`, { replace: true });
-    setTab(section);
-  };
 
   const savePrice = async (e) => {
     e.preventDefault();
@@ -141,34 +123,11 @@ export default function Finance() {
     loadBills(billSearch);
   };
 
-  const sectionMessage = tab === 'pricing' ? 'Blood Unit Pricing' : 'Expenses';
-
   return (
     <div className="space-y-3">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
-      <div className="card p-4 flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <button
-            className={`px-4 py-2 rounded-lg text-sm font-medium border ${
-              tab === 'pricing' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-200'
-            }`}
-            onClick={() => setSection('pricing')}
-          >
-            Blood Unit Pricing
-          </button>
-          <button
-            className={`px-4 py-2 rounded-lg text-sm font-medium border ${
-              tab === 'expenses' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-200'
-            }`}
-            onClick={() => setSection('expenses')}
-          >
-            Expenses
-          </button>
-        </div>
-        <div className="text-sm text-slate-500">Showing: {sectionMessage}</div>
-      </div>
 
-      {tab === 'pricing' && (
+      {section === 'pricing' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="card p-4 flex flex-col">
             <div className="flex items-center justify-between">
@@ -293,7 +252,7 @@ export default function Finance() {
         </div>
       )}
 
-      {tab === 'expenses' && (
+      {section === 'expenses' && (
         <div className="space-y-3">
           <div className="card p-4 flex items-center justify-between">
             <h3 className="font-semibold text-slate-900">Expenses</h3>
