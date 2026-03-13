@@ -1,11 +1,11 @@
 -- Blood Bank Management System database schema
 -- Run this script in MySQL 8+ (utf8mb4, InnoDB).
 
-CREATE DATABASE IF NOT EXISTS `Blood Bank Management System`
+CREATE DATABASE IF NOT EXISTS `bloodbank`
   DEFAULT CHARACTER SET utf8mb4
   DEFAULT COLLATE utf8mb4_unicode_ci;
 
-USE `Blood Bank Management System`;
+USE `bloodbank`;
 
 -- Users (staff/admin accounts)
 CREATE TABLE IF NOT EXISTS users (
@@ -23,6 +23,12 @@ CREATE TABLE IF NOT EXISTS users (
   KEY idx_users_role (role),
   KEY idx_users_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO users (name, username, phone, role, password_hash, status)
+SELECT 'System Administrator', 'admin', '+923001234567', 'admin', '$2y$12$OVbuDK6i1p3jMJs6iDj3aemaGPAZ8KrRbwh8y67Xd.hSiYPg5I5Ay', 'active'
+WHERE NOT EXISTS (
+  SELECT 1 FROM users WHERE username = 'admin'
+);
 
 -- Donors
 CREATE TABLE IF NOT EXISTS donors (
@@ -113,6 +119,29 @@ CREATE TABLE IF NOT EXISTS inventory (
   KEY idx_inventory_blood_group (blood_group),
   CONSTRAINT fk_inventory_collection FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE collections
+  ADD COLUMN IF NOT EXISTS expiry_date_override DATE NULL AFTER collection_site;
+
+-- Configurable expiry rules by blood component
+CREATE TABLE IF NOT EXISTS settings_expiry_rules (
+  component ENUM('Whole Blood','PRBC','Platelets','FFP','Plasma','Cryo') NOT NULL PRIMARY KEY,
+  shelf_life_days SMALLINT UNSIGNED NOT NULL,
+  allow_manual_override BOOLEAN NOT NULL DEFAULT 1,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO settings_expiry_rules (component, shelf_life_days, allow_manual_override)
+VALUES
+  ('Whole Blood', 35, 1),
+  ('PRBC', 42, 1),
+  ('Platelets', 5, 1),
+  ('FFP', 365, 1),
+  ('Plasma', 365, 1),
+  ('Cryo', 365, 1)
+ON DUPLICATE KEY UPDATE
+  shelf_life_days = VALUES(shelf_life_days),
+  allow_manual_override = VALUES(allow_manual_override);
 
 -- Patients who may receive transfusions
 CREATE TABLE IF NOT EXISTS patients (

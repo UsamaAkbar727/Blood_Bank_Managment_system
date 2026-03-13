@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/Permissions.php';
 require_once __DIR__ . '/LogService.php';
+require_once __DIR__ . '/SettingsService.php';
 
 class CollectionService
 {
@@ -11,6 +12,7 @@ class CollectionService
         $bagType = $input['bag_type'] ?? '450ml';
         $volume = (int)($input['volume_ml'] ?? 0);
         $site = trim($input['collection_site'] ?? '');
+        $expiryDateOverride = trim((string)($input['expiry_date_override'] ?? ''));
         $remarks = trim($input['remarks'] ?? '');
         $collectedBy = isset($input['collected_by']) ? (int)$input['collected_by'] : null;
         $status = $input['status'] ?? 'pending_screen';
@@ -19,6 +21,14 @@ class CollectionService
             throw new InvalidArgumentException('missing_fields');
         }
         $code = $input['collection_code'] ?? ('COL-' . strtoupper(bin2hex(random_bytes(3))));
+        $expiryRule = SettingsService::ruleForComponent('Whole Blood');
+        $allowManualOverride = $expiryRule['allow_manual_override'];
+        if ($expiryDateOverride !== '' && !$allowManualOverride) {
+            throw new InvalidArgumentException('manual_expiry_override_disabled');
+        }
+        if ($expiryDateOverride !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $expiryDateOverride)) {
+            throw new InvalidArgumentException('invalid_expiry_date_override');
+        }
 
         return [
             'collection_code' => $code,
@@ -28,6 +38,7 @@ class CollectionService
             'bag_type' => $bagType,
             'volume_ml' => $volume,
             'collection_site' => $site,
+            'expiry_date_override' => $expiryDateOverride !== '' ? $expiryDateOverride : null,
             'remarks' => $remarks,
             'status' => $status,
         ];
@@ -59,9 +70,9 @@ class CollectionService
         $data = self::sanitize($input);
         self::assertDonorExists($data['donor_id']);
 
-        $stmt = db()->prepare('INSERT INTO collections (collection_code, donor_id, collected_by, collection_date, bag_type, volume_ml, collection_site, remarks, status) VALUES (?,?,?,?,?,?,?,?,?)');
+        $stmt = db()->prepare('INSERT INTO collections (collection_code, donor_id, collected_by, collection_date, bag_type, volume_ml, collection_site, expiry_date_override, remarks, status) VALUES (?,?,?,?,?,?,?,?,?,?)');
         $stmt->bind_param(
-            'siississs',
+            'siississss',
             $data['collection_code'],
             $data['donor_id'],
             $data['collected_by'],
@@ -69,6 +80,7 @@ class CollectionService
             $data['bag_type'],
             $data['volume_ml'],
             $data['collection_site'],
+            $data['expiry_date_override'],
             $data['remarks'],
             $data['status']
         );
@@ -90,9 +102,9 @@ class CollectionService
         $data = self::sanitize($input);
         self::assertDonorExists($data['donor_id']);
 
-        $stmt = db()->prepare('UPDATE collections SET collection_code=?, donor_id=?, collected_by=?, collection_date=?, bag_type=?, volume_ml=?, collection_site=?, remarks=?, status=? WHERE id=?');
+        $stmt = db()->prepare('UPDATE collections SET collection_code=?, donor_id=?, collected_by=?, collection_date=?, bag_type=?, volume_ml=?, collection_site=?, expiry_date_override=?, remarks=?, status=? WHERE id=?');
         $stmt->bind_param(
-            'siississsi',
+            'siississssi',
             $data['collection_code'],
             $data['donor_id'],
             $data['collected_by'],
@@ -100,6 +112,7 @@ class CollectionService
             $data['bag_type'],
             $data['volume_ml'],
             $data['collection_site'],
+            $data['expiry_date_override'],
             $data['remarks'],
             $data['status'],
             $id

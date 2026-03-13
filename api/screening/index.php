@@ -8,24 +8,46 @@ $method = $_SERVER['REQUEST_METHOD'];
 try {
     switch ($method) {
         case 'GET':
-            if (isset($_GET['collection_id'])) {
+            if (isset($_GET['id'])) {
+                $row = ScreeningService::get((int)$_GET['id']);
+                echo json_encode(['data' => $row]);
+            } elseif (isset($_GET['collection_id'])) {
                 $row = ScreeningService::getByCollection((int)$_GET['collection_id']);
                 echo json_encode(['data' => $row]);
+            } elseif (isset($_GET['collections'])) {
+                $search = $_GET['q'] ?? '';
+                echo json_encode(['data' => ScreeningService::listCollections($search)]);
             } else {
                 $search = $_GET['q'] ?? '';
                 echo json_encode(['data' => ScreeningService::list($search)]);
             }
             break;
-        case 'POST':
         case 'PUT':
         case 'PATCH':
+            parse_str($_SERVER['QUERY_STRING'] ?? '', $params);
+            $id = isset($params['id']) ? (int)$params['id'] : null;
             $payload = json_decode(file_get_contents('php://input'), true) ?? [];
             $user = Auth::currentUser();
             if ($user) {
                 $payload['tested_by'] = $user['id'];
             }
-            $row = ScreeningService::save($payload);
+            $row = ScreeningService::save($payload, $id);
             echo json_encode(['data' => $row]);
+            break;
+        case 'POST':
+            $payload = json_decode(file_get_contents('php://input'), true) ?? [];
+            $user = Auth::currentUser();
+            if ($user) {
+                $payload['tested_by'] = $user['id'];
+            }
+            $row = ScreeningService::save($payload, null);
+            echo json_encode(['data' => $row]);
+            break;
+        case 'DELETE':
+            parse_str($_SERVER['QUERY_STRING'] ?? '', $params);
+            $id = isset($params['id']) ? (int)$params['id'] : 0;
+            $ok = ScreeningService::delete($id);
+            echo json_encode(['deleted' => $ok]);
             break;
         default:
             http_response_code(405);

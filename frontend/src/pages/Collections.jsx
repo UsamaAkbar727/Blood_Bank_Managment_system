@@ -11,13 +11,23 @@ const blank = {
   bag_type: '450ml',
   volume_ml: '',
   collection_site: '',
+  expiry_date_override: '',
   status: 'pending_screen',
   remarks: '',
 };
 
+function addDays(dateTimeValue, days) {
+  if (!dateTimeValue || !days) return '';
+  const date = new Date(dateTimeValue);
+  if (Number.isNaN(date.getTime())) return '';
+  date.setDate(date.getDate() + Number(days));
+  return date.toISOString().slice(0, 10);
+}
+
 export default function Collections() {
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(blank);
+  const [expiryRule, setExpiryRule] = useState({ component: 'Whole Blood', shelf_life_days: 35, allow_manual_override: true });
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
@@ -36,6 +46,22 @@ export default function Collections() {
   }, [load]);
 
   useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await request('/api/settings/expiry.php');
+        const wholeBloodRule = (res.data || []).find((item) => item.component === 'Whole Blood');
+        if (wholeBloodRule) {
+          setExpiryRule(wholeBloodRule);
+        }
+      } catch (err) {
+        // Keep sane fallback if settings are unavailable.
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  useEffect(() => {
     const id = setInterval(() => load(), 10000);
     return () => clearInterval(id);
   }, [load]);
@@ -51,6 +77,7 @@ export default function Collections() {
       bag_type: form.bag_type,
       volume_ml: Number(form.volume_ml),
       collection_site: form.collection_site,
+      expiry_date_override: form.expiry_date_override || null,
       status: form.status,
       remarks: form.remarks,
     };
@@ -82,11 +109,14 @@ export default function Collections() {
       bag_type: row.bag_type,
       volume_ml: row.volume_ml,
       collection_site: row.collection_site || '',
+      expiry_date_override: row.expiry_date_override || '',
       status: row.status,
       remarks: row.remarks || '',
     });
     setOpen(true);
   };
+
+  const computedExpiry = addDays(form.collection_date, expiryRule.shelf_life_days);
 
   const remove = async (id) => {
     try {
@@ -244,6 +274,31 @@ export default function Collections() {
                 value={form.collection_site}
                 onChange={(e) => setForm({ ...form, collection_site: e.target.value })}
               />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-slate-600">Default Expiry</label>
+              <input
+                type="text"
+                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 text-slate-600"
+                value={computedExpiry || ''}
+                readOnly
+              />
+              <p className="text-xs text-slate-500 mt-1">Whole Blood uses {expiryRule.shelf_life_days} days from collection date by default.</p>
+            </div>
+            <div>
+              <label className="text-sm text-slate-600">Manual Expiry Override</label>
+              <input
+                type="date"
+                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
+                value={form.expiry_date_override}
+                onChange={(e) => setForm({ ...form, expiry_date_override: e.target.value })}
+                disabled={!expiryRule.allow_manual_override}
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                {expiryRule.allow_manual_override ? 'Leave blank to use the default calculated expiry.' : 'Manual override is disabled in Settings.'}
+              </p>
             </div>
           </div>
           <div>

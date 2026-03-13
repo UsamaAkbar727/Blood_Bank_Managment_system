@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/Permissions.php';
+require_once __DIR__ . '/InventoryService.php';
 
 class ReportService
 {
@@ -35,6 +36,7 @@ class ReportService
     public static function inventorySnapshot(): array
     {
         Permissions::allow('reports');
+        InventoryService::reconcile();
         $sql = 'SELECT blood_group, status, COUNT(*) AS total FROM inventory GROUP BY blood_group, status';
         return db()->query($sql)->fetch_all(MYSQLI_ASSOC);
     }
