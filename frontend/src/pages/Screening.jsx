@@ -53,7 +53,7 @@ export default function Screening() {
       try {
         const [screeningRes, collectionsRes] = await Promise.all([
           request(`/api/screening/index.php?q=${encodeURIComponent(q)}`),
-          request(`/api/screening/index.php?collections=1&q=${encodeURIComponent(q)}`),
+          request(`/api/screening/index.php?collections=1`), // Load ALL collections without search filter
         ]);
         setRows(screeningRes.data || []);
         setCollections(collectionsRes.data || []);
@@ -203,7 +203,16 @@ export default function Screening() {
             placeholder="Search by collection, donor, or status"
             className="w-full md:w-80 border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
           />
-          <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm" onClick={openCreate}>
+          <button
+            disabled={collections.length === 0}
+            title={collections.length === 0 ? 'No pending collections available. Create a collection first.' : ''}
+            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+              collections.length === 0
+                ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+            onClick={openCreate}
+          >
             Add Screening Record
           </button>
         </div>
@@ -286,6 +295,11 @@ export default function Screening() {
         title={form.id ? 'Edit Screening Record' : 'Add Screening Record'}
       >
         <form className="space-y-4" onSubmit={onSubmit}>
+          {collections.length === 0 && (
+            <div className="p-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-sm">
+              No collections available for screening. Please create a collection and add donors first.
+            </div>
+          )}
           <div>
             <label className="text-sm text-slate-600">Collection Unit</label>
             <select

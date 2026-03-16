@@ -51,8 +51,18 @@ export default function Issuance() {
       setUnits([]);
       return;
     }
-    const res = await request(`/api/inventory/index.php?action=list&status=available&q=${encodeURIComponent(patient.blood_group)}`);
-    const data = (res.data || []).filter((u) => (compatibility[patient.blood_group] || []).includes(u.blood_group));
+    // Fetch ALL available inventory without blood group restriction
+    const res = await request(`/api/inventory/index.php?action=list&status=available`);
+    // Filter to only compatible blood groups for this patient, and sort by expiry date (FIFO)
+    const compatibleBloodGroups = compatibility[patient.blood_group] || [];
+    const data = (res.data || [])
+      .filter((u) => compatibleBloodGroups.includes(u.blood_group))
+      .sort((a, b) => {
+        // Sort by expiry date ascending (soonest first - FIFO)
+        const dateA = new Date(a.expiry_date || '2099-12-31').getTime();
+        const dateB = new Date(b.expiry_date || '2099-12-31').getTime();
+        return dateA - dateB;
+      });
     setUnits(data);
   };
 

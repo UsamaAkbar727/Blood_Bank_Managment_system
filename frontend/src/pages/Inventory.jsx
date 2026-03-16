@@ -9,6 +9,8 @@ export default function Inventory() {
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [safeCollections, setSafeCollections] = useState(0);
+  const [screeningCollections, setScreeningCollections] = useState(0);
 
   const loadSummary = async () => {
     const res = await request('/api/inventory/index.php?action=summary');
@@ -27,11 +29,25 @@ export default function Inventory() {
     setRows(res.data || []);
   };
 
+  const loadCollectionStats = async () => {
+    try {
+      const safeRes = await request('/api/collections/index.php?status=safe');
+      const screeningRes = await request('/api/collections/index.php?status=screening');
+      setSafeCollections((safeRes.data || []).length);
+      setScreeningCollections((screeningRes.data || []).length);
+    } catch (err) {
+      // keep UI stable if call fails
+      setSafeCollections(0);
+      setScreeningCollections(0);
+    }
+  };
+
   useEffect(() => {
     loadSummary();
     loadLow();
     loadExpiring();
     loadTable();
+    loadCollectionStats();
   }, []);
 
   useEffect(() => {
@@ -129,7 +145,12 @@ export default function Inventory() {
                 {rows.length === 0 && (
                   <tr>
                     <td className="px-4 py-3 text-slate-500" colSpan={7}>
-                      No inventory found
+                      No inventory found.
+                      {safeCollections > 0 && (
+                        <span className="ml-2 text-amber-600">
+                          {safeCollections} safe collection(s) exist but inventory is not yet generated in this view. Run screening conversion or refresh.
+                        </span>
+                      )}
                     </td>
                   </tr>
                 )}

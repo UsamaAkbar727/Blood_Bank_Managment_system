@@ -53,6 +53,18 @@ export default function Donors() {
   const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    // Client-side validation for CNIC
+    const digitsOnly = form.cnic.replace(/\D/g, '');
+    if (digitsOnly.length !== 13) {
+      setError('CNIC must be exactly 13 digits.');
+      return;
+    }
+    if (!/^\d+$/.test(digitsOnly)) {
+      setError('CNIC must contain only numeric digits.');
+      return;
+    }
+    
     const isEdit = Boolean(form.id);
     const payload = {
       full_name: form.full_name,
@@ -78,7 +90,13 @@ export default function Donors() {
       setOpen(false);
       load();
     } catch (err) {
-      setError(err.message || 'Save failed');
+      if (err.message === 'invalid_cnic') {
+        setError('Invalid CNIC format. Please enter exactly 13 digits.');
+      } else if (err.message === 'duplicate_cnic_or_code') {
+        setError('This CNIC is already registered in the system.');
+      } else {
+        setError(err.message || 'Save failed');
+      }
     }
   };
 
@@ -215,12 +233,32 @@ export default function Donors() {
             <div>
               <label className="text-sm text-slate-600">CNIC</label>
               <input
-                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
+                type="text"
+                inputMode="numeric"
+                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 font-mono"
                 value={form.cnic}
-                onChange={(e) => setForm({ ...form, cnic: e.target.value })}
-                required
+                onChange={(e) => {
+                  // Extract only numeric digits
+                  const digitsOnly = e.target.value.replace(/\D/g, '');
+                  
+                  // Limit to 13 digits
+                  if (digitsOnly.length <= 13) {
+                    // Auto-format as user types: 5-7-1 pattern
+                    let formatted = digitsOnly;
+                    if (digitsOnly.length > 5) {
+                      formatted = digitsOnly.slice(0, 5) + '-' + digitsOnly.slice(5);
+                    }
+                    if (digitsOnly.length > 12) {
+                      formatted = digitsOnly.slice(0, 5) + '-' + digitsOnly.slice(5, 12) + '-' + digitsOnly.slice(12);
+                    }
+                    setForm({ ...form, cnic: formatted });
+                  }
+                }}
+                maxLength="15"
                 placeholder="12345-1234567-1"
+                required
               />
+              <p className="text-xs text-slate-500 mt-1">13 digits (format: XXXXX-XXXXXXX-X)</p>
             </div>
             <div>
               <label className="text-sm text-slate-600">Blood Group</label>

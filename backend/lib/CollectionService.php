@@ -167,17 +167,29 @@ class CollectionService
         return $row ?: null;
     }
 
-    public static function list(string $search = '', ?int $donorId = null): array
+    public static function list(string $search = '', ?int $donorId = null, ?string $status = null): array
     {
         Permissions::allow('collections');
         $searchLike = '%' . $search . '%';
+
         if ($donorId) {
-            $stmt = db()->prepare('SELECT c.*, d.full_name AS donor_name, d.blood_group FROM collections c JOIN donors d ON d.id = c.donor_id WHERE c.donor_id = ? ORDER BY c.collection_date DESC LIMIT 200');
-            $stmt->bind_param('i', $donorId);
+            if ($status) {
+                $stmt = db()->prepare('SELECT c.*, d.full_name AS donor_name, d.blood_group FROM collections c JOIN donors d ON d.id = c.donor_id WHERE c.donor_id = ? AND c.status = ? ORDER BY c.collection_date DESC LIMIT 200');
+                $stmt->bind_param('is', $donorId, $status);
+            } else {
+                $stmt = db()->prepare('SELECT c.*, d.full_name AS donor_name, d.blood_group FROM collections c JOIN donors d ON d.id = c.donor_id WHERE c.donor_id = ? ORDER BY c.collection_date DESC LIMIT 200');
+                $stmt->bind_param('i', $donorId);
+            }
         } else {
-            $stmt = db()->prepare('SELECT c.*, d.full_name AS donor_name, d.blood_group FROM collections c JOIN donors d ON d.id = c.donor_id WHERE c.collection_code LIKE ? OR d.full_name LIKE ? OR d.blood_group LIKE ? ORDER BY c.collection_date DESC LIMIT 200');
-            $stmt->bind_param('sss', $searchLike, $searchLike, $searchLike);
+            if ($status) {
+                $stmt = db()->prepare('SELECT c.*, d.full_name AS donor_name, d.blood_group FROM collections c JOIN donors d ON d.id = c.donor_id WHERE (c.collection_code LIKE ? OR d.full_name LIKE ? OR d.blood_group LIKE ?) AND c.status = ? ORDER BY c.collection_date DESC LIMIT 200');
+                $stmt->bind_param('ssss', $searchLike, $searchLike, $searchLike, $status);
+            } else {
+                $stmt = db()->prepare('SELECT c.*, d.full_name AS donor_name, d.blood_group FROM collections c JOIN donors d ON d.id = c.donor_id WHERE c.collection_code LIKE ? OR d.full_name LIKE ? OR d.blood_group LIKE ? ORDER BY c.collection_date DESC LIMIT 200');
+                $stmt->bind_param('sss', $searchLike, $searchLike, $searchLike);
+            }
         }
+
         $stmt->execute();
         $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $stmt->close();

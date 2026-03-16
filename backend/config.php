@@ -92,7 +92,7 @@ loadEnvFile(__DIR__ . '/.env');
 
 define('DB_HOST', envValue('DB_HOST', '127.0.0.1'));
 define('DB_USER', envValue('DB_USER', 'root'));
-define('DB_PASS', envValue('DB_PASS', 'Hello@789'));
+define('DB_PASS', envValue('DB_PASS', ''));
 // Database name includes spaces; MySQL allows this but using an underscore is recommended in production.
 // Note: Match this exactly to your actual database name (case-sensitive on some systems)
 define('DB_NAME', envValue('DB_NAME', 'bloodbank'));

@@ -2,9 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import JsBarcode from 'jsbarcode';
 import Modal from '../components/Modal';
 
+const blankBag = { code: 'BAG-000', blood: '', component: 'Whole Blood', expiry: '', volume: '' };
+
 export default function Barcodes() {
-  const [bag, setBag] = useState({ code: 'BAG-000', blood: '', component: 'Whole Blood', expiry: '', volume: '' });
+  const [bag, setBag] = useState(blankBag);
   const [open, setOpen] = useState(false);
+  const [labels, setLabels] = useState([]);
+  const [editIndex, setEditIndex] = useState(null);
   const barcodeRef = useRef(null);
 
   const renderBarcode = () => {
@@ -52,7 +56,11 @@ export default function Barcodes() {
             </button>
             <button
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
-              onClick={() => setOpen(true)}
+              onClick={() => {
+                setBag(blankBag);
+                setEditIndex(null);
+                setOpen(true);
+              }}
             >
               New Label
             </button>
@@ -69,12 +77,67 @@ export default function Barcodes() {
         </div>
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Generate / Print Label">
+      <div className="card p-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-semibold text-slate-900">Saved Labels</h3>
+          <span className="text-xs text-slate-500">Each label is kept separately</span>
+        </div>
+        <div className="space-y-2">
+          {labels.length === 0 && <p className="text-sm text-slate-500">No saved labels yet.</p>}
+          {labels.map((lbl, idx) => (
+            <div key={`${lbl.code}-${idx}`} className="flex items-center justify-between border border-slate-200 rounded-lg px-3 py-2">
+              <div>
+                <div className="font-medium text-slate-800">{lbl.code}</div>
+                <div className="text-xs text-slate-500">{lbl.component} / {lbl.blood} / {lbl.expiry} / {lbl.volume} ml</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="text-blue-600 text-xs"
+                  onClick={() => {
+                    setBag(lbl);
+                    setEditIndex(idx);
+                    setOpen(true);
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  className="text-red-600 text-xs"
+                  onClick={() => setLabels((current) => current.filter((_, i) => i !== idx))}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Modal
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setBag(blankBag);
+          setEditIndex(null);
+        }}
+        title="Generate / Print Label"
+      >
         <form
           className="space-y-3"
           onSubmit={(e) => {
             e.preventDefault();
             renderBarcode();
+            setLabels((current) => {
+              const newLabel = { ...bag };
+              if (editIndex !== null && editIndex >= 0 && editIndex < current.length) {
+                const updated = [...current];
+                updated[editIndex] = newLabel;
+                return updated;
+              }
+              return [...current, newLabel];
+            });
+            setBag(blankBag);
+            setEditIndex(null);
             setOpen(false);
           }}
         >

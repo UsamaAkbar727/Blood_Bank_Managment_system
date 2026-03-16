@@ -32,6 +32,8 @@ export default function Collections() {
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'info' });
+  const [donors, setDonors] = useState([]);
+  const [donorSearch, setDonorSearch] = useState('');
 
   const load = useCallback(
     async (q = search) => {
@@ -66,10 +68,43 @@ export default function Collections() {
     return () => clearInterval(id);
   }, [load]);
 
+  const loadDonors = useCallback(
+    async (q = donorSearch) => {
+      try {
+        const res = await request(`/api/donors/index.php?q=${encodeURIComponent(q)}`);
+        setDonors(res.data || []);
+      } catch (err) {
+        setDonors([]);
+      }
+    },
+    [donorSearch],
+  );
+
+  useEffect(() => {
+    if (open) {
+      loadDonors('');
+    }
+  }, [open, loadDonors]);
+
   const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
     const isEdit = Boolean(form.id);
+    
+    // Validate required fields
+    if (!form.donor_id) {
+      setError('Please select a donor');
+      return;
+    }
+    if (!form.collection_date) {
+      setError('Please enter collection date');
+      return;
+    }
+    if (!form.volume_ml) {
+      setError('Please enter volume');
+      return;
+    }
+    
     const payload = {
       donor_id: Number(form.donor_id),
       collection_code: form.collection_code || undefined,
@@ -81,10 +116,10 @@ export default function Collections() {
       status: form.status,
       remarks: form.remarks,
     };
-    const method = form.id ? 'PUT' : 'POST';
-    const url = form.id ? `/api/collections/index.php?id=${form.id}` : '/api/collections/index.php';
+    const method = isEdit ? 'PUT' : 'POST';
+    const url = isEdit ? `/api/collections/index.php?id=${form.id}` : '/api/collections/index.php';
     try {
-      await request(url, { method, body: payload });
+      const response = await request(url, { method, body: payload });
       setToast({
         message: isEdit ? 'Collection updated successfully.' : 'Collection added successfully.',
         type: 'success',
@@ -93,7 +128,13 @@ export default function Collections() {
       setOpen(false);
       load();
     } catch (err) {
-      setError(err.message || 'Save failed');
+      if (err.message === 'duplicate_collection_code') {
+        setError('This collection code already exists. Please use a different code.');
+      } else if (err.message === 'donor_not_found') {
+        setError('Selected donor not found. Please choose a valid donor.');
+      } else {
+        setError(err.message || 'Save failed');
+      }
     }
   };
 
@@ -113,6 +154,7 @@ export default function Collections() {
       status: row.status,
       remarks: row.remarks || '',
     });
+    setDonorSearch(row.donor_name || '');
     setOpen(true);
   };
 
@@ -149,6 +191,8 @@ export default function Collections() {
             onClick={() => {
               setForm(blank);
               setError('');
+              setDonorSearch('');
+              setDonors([]);
               setOpen(true);
             }}
           >
@@ -209,20 +253,48 @@ export default function Collections() {
           setOpen(false);
           setForm(blank);
           setError('');
+          setDonorSearch('');
+          setDonors([]);
         }}
         title={form.id ? 'Edit Collection' : 'Add Collection'}
       >
         <form className="space-y-3" onSubmit={onSubmit}>
           <div>
-            <label className="text-sm text-slate-600">Donor ID</label>
+            <label className="text-sm text-slate-600">Select Donor *</label>
             <input
-              type="number"
+              type="text"
               className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
-              value={form.donor_id}
-              onChange={(e) => setForm({ ...form, donor_id: e.target.value })}
-              required
+              placeholder="Search by name, code, CNIC, or blood group"
+              value={donorSearch}
+              onChange={(e) => {
+                setDonorSearch(e.target.value);
+                loadDonors(e.target.value);
+              }}
             />
-            <p className="text-xs text-slate-500 mt-1">Link to donor by ID.</p>
+            {donors.length > 0 && (
+              <div className="mt-1 border border-slate-200 rounded-lg max-h-40 overflow-y-auto bg-white z-10">
+                {donors.map((donor) => (
+                  <button
+                    key={donor.id}
+                    type="button"
+                    className="w-full text-left px-3 py-2 hover:bg-blue-50 text-sm border-b border-slate-100 last:border-b-0 transition-colors"
+                    onClick={() => {
+                      setForm({ ...form, donor_id: donor.id });
+                      setDonorSearch(`${donor.full_name} (${donor.blood_group})`);
+                      setDonors([]);
+                    }}
+                  >
+                    <div className="font-medium text-slate-900">{donor.full_name}</div>
+                    <div className="text-xs text-slate-500">{donor.donor_code} | {donor.blood_group} | {donor.cnic}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {form.donor_id && (
+              <p className="text-xs text-slate-500 mt-1">
+                ✓ Donor ID: {form.donor_id}
+              </p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -252,7 +324,11 @@ export default function Collections() {
               type="datetime-local"
               className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
               value={form.collection_date}
-              onChange={(e) => setForm({ ...form, collection_date: e.target.value })}
+              onChange={(e) => {
+                setForm((prev) => ({ ...prev, collection_date: e.target.value }));
+                // Auto-close native date-time picker after selection
+                e.target.blur();
+              }}
               required
             />
           </div>

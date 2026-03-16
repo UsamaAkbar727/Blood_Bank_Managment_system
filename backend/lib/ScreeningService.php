@@ -61,22 +61,50 @@ class ScreeningService
         $rule = SettingsService::ruleForComponent($component);
         $expiry = $collection['expiry_date_override']
             ?: date('Y-m-d', strtotime($collection['collection_date'] . ' +' . $rule['shelf_life_days'] . ' days'));
-        $stmt = db()->prepare('INSERT INTO inventory (collection_id, component, blood_group, volume_ml, units_available, storage_location, expiry_date, status) VALUES (?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE blood_group=VALUES(blood_group), volume_ml=VALUES(volume_ml), expiry_date=VALUES(expiry_date), status=VALUES(status)');
         $status = 'available';
         $location = $collection['collection_site'] ?: 'Main Cold Room';
-        $stmt->bind_param(
-            'isssisss',
-            $collection['id'],
-            $component,
-            $screen['blood_group_confirmed'],
-            $collection['volume_ml'],
-            $units = 1,
-            $location,
-            $expiry,
-            $status
-        );
-        $stmt->execute();
-        $stmt->close();
+        
+        // Check if inventory already exists for this collection and component
+        $checkStmt = db()->prepare('SELECT id FROM inventory WHERE collection_id = ? AND component = ? LIMIT 1');
+        $checkStmt->bind_param('is', $collection['id'], $component);
+        $checkStmt->execute();
+        $existingInventory = $checkStmt->get_result()->fetch_assoc();
+        $checkStmt->close();
+        
+        if ($existingInventory) {
+            // UPDATE existing inventory record
+            $stmt = db()->prepare('UPDATE inventory SET blood_group=?, volume_ml=?, expiry_date=?, status=? WHERE id=?');
+            $stmt->bind_param(
+                'sissi',
+                $screen['blood_group_confirmed'],
+                $collection['volume_ml'],
+                $expiry,
+                $status,
+                $existingInventory['id']
+            );
+            if (!$stmt->execute()) {
+                throw new RuntimeException('Failed to update inventory: ' . $stmt->error);
+            }
+            $stmt->close();
+        } else {
+            // INSERT new inventory record
+            $stmt = db()->prepare('INSERT INTO inventory (collection_id, component, blood_group, volume_ml, units_available, storage_location, expiry_date, status) VALUES (?,?,?,?,?,?,?,?)');
+            $stmt->bind_param(
+                'isssisss',
+                $collection['id'],
+                $component,
+                $screen['blood_group_confirmed'],
+                $collection['volume_ml'],
+                $units = 1,
+                $location,
+                $expiry,
+                $status
+            );
+            if (!$stmt->execute()) {
+                throw new RuntimeException('Failed to create inventory: ' . $stmt->error);
+            }
+            $stmt->close();
+        }
     }
 
     private static function discardInventory(int $collectionId): void

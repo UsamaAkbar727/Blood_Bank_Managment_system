@@ -23,7 +23,14 @@ try {
                 echo json_encode(['error' => 'unauthorized']);
                 exit;
             }
+            // Validate required fields
+            if (empty($payload['inventory_id']) || empty($payload['patient_id'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'missing_fields', 'message' => 'Both inventory_id and patient_id are required']);
+                exit;
+            }
             $row = IssuanceService::issue($payload, $user['id']);
+            http_response_code(201);
             echo json_encode(['data' => $row]);
             break;
         default:

@@ -20,12 +20,10 @@ const blankExpense = {
 export default function Finance({ section = 'pricing' }) {
   const [prices, setPrices] = useState([]);
   const [expenses, setExpenses] = useState([]);
-  const [bills, setBills] = useState([]);
   const [priceForm, setPriceForm] = useState(blankPrice);
   const [expenseForm, setExpenseForm] = useState(blankExpense);
   const [priceError, setPriceError] = useState('');
   const [expenseError, setExpenseError] = useState('');
-  const [billSearch, setBillSearch] = useState('');
   const [priceModal, setPriceModal] = useState(false);
   const [expenseModal, setExpenseModal] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'info' });
@@ -40,25 +38,18 @@ export default function Finance({ section = 'pricing' }) {
     setExpenses(res.data || []);
   };
 
-  const loadBills = async (q = '') => {
-    const res = await request(`/api/finance/billing.php?q=${encodeURIComponent(q)}`);
-    setBills(res.data || []);
-  };
-
   useEffect(() => {
     loadPrices();
     loadExpenses();
-    loadBills();
   }, []);
 
   useEffect(() => {
     const id = setInterval(() => {
       loadPrices();
       loadExpenses();
-      loadBills(billSearch);
     }, 15000);
     return () => clearInterval(id);
-  }, [billSearch]);
+  }, []);
 
   const savePrice = async (e) => {
     e.preventDefault();
@@ -108,146 +99,61 @@ export default function Finance({ section = 'pricing' }) {
     }
   };
 
-  const deleteBill = async (id) => {
-    try {
-      await request(`/api/finance/billing.php?id=${id}`, { method: 'DELETE' });
-      setToast({ message: 'Billing record removed successfully.', type: 'success' });
-      loadBills(billSearch);
-    } catch (err) {
-      setToast({ message: err.message || 'Unable to remove billing record. Please try again.', type: 'error' });
-    }
-  };
 
-  const markPaid = async (id) => {
-    await request(`/api/finance/billing.php?id=${id}`, { method: 'PATCH' });
-    loadBills(billSearch);
-  };
 
   return (
     <div className="space-y-3">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
 
       {section === 'pricing' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="card p-4 flex flex-col">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-slate-900">Blood Unit Pricing</h3>
-              <button
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm"
-                onClick={() => {
-                  setPriceForm(blankPrice);
-                  setPriceError('');
-                  setPriceModal(true);
-                }}
-              >
-                Add Price
-              </button>
-            </div>
-            <div className="table-responsive overflow-x-auto mt-2 max-h-[420px] overflow-y-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-slate-50 text-slate-600 text-left">
-                  <tr>
-                    <th className="px-3 py-2">Component</th>
-                    <th className="px-3 py-2">Blood</th>
-                    <th className="px-3 py-2">Cost</th>
-                    <th className="px-3 py-2">Eff From</th>
-                    <th className="px-3 py-2 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {prices.map((r, idx) => (
-                    <tr key={idx} className="border-t border-slate-100">
-                      <td className="px-3 py-2">{r.component}</td>
-                      <td className="px-3 py-2">{r.blood_group}</td>
-                      <td className="px-3 py-2">{Number(r.unit_cost).toFixed(2)}</td>
-                      <td className="px-3 py-2">{r.effective_from}</td>
-                      <td className="px-3 py-2 text-right">
-                        <button className="text-red-600 text-sm" onClick={() => deletePrice(r.id)}>
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {prices.length === 0 && (
-                    <tr>
-                      <td className="px-3 py-2 text-slate-500" colSpan={5}>
-                        No pricing configured
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+        <div className="card p-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-slate-900">Blood Unit Pricing</h3>
+            <button
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm"
+              onClick={() => {
+                setPriceForm(blankPrice);
+                setPriceError('');
+                setPriceModal(true);
+              }}
+            >
+              Add Price
+            </button>
           </div>
-
-          <div className="card p-4 flex flex-col">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-slate-900">Billing Records</h3>
-              <input
-                type="search"
-                value={billSearch}
-                onChange={(e) => {
-                  setBillSearch(e.target.value);
-                  loadBills(e.target.value);
-                }}
-                placeholder="Filter by patient/code"
-                className="border border-slate-200 rounded-lg px-3 py-2 w-56"
-              />
-            </div>
-            <div className="table-responsive overflow-x-auto mt-2 max-h-[420px] overflow-y-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-slate-50 text-slate-600 text-left">
-                  <tr>
-                    <th className="px-4 py-2">Invoice</th>
-                    <th className="px-4 py-2">Patient</th>
-                    <th className="px-4 py-2">Amount</th>
-                    <th className="px-4 py-2">Status</th>
-                    <th className="px-4 py-2">Issued</th>
-                    <th className="px-4 py-2 text-right">Action</th>
+          <div className="table-responsive overflow-x-auto mt-2">
+            <table className="min-w-full text-sm">
+              <thead className="bg-slate-50 text-slate-600 text-left">
+                <tr>
+                  <th className="px-3 py-2">Component</th>
+                  <th className="px-3 py-2">Blood</th>
+                  <th className="px-3 py-2">Cost</th>
+                  <th className="px-3 py-2">Eff From</th>
+                  <th className="px-3 py-2 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {prices.map((r, idx) => (
+                  <tr key={idx} className="border-t border-slate-100">
+                    <td className="px-3 py-2">{r.component}</td>
+                    <td className="px-3 py-2">{r.blood_group}</td>
+                    <td className="px-3 py-2">{Number(r.unit_cost).toFixed(2)}</td>
+                    <td className="px-3 py-2">{r.effective_from}</td>
+                    <td className="px-3 py-2 text-right">
+                      <button className="text-red-600 text-sm" onClick={() => deletePrice(r.id)}>
+                        Delete
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {bills.map((r) => (
-                    <tr key={r.id} className="border-t border-slate-100">
-                      <td className="px-4 py-2">{r.invoice_no}</td>
-                      <td className="px-4 py-2">
-                        {r.patient_name} ({r.patient_code})
-                      </td>
-                      <td className="px-4 py-2">{formatCurrency(Number(r.amount) - Number(r.discount || 0))}</td>
-                      <td className="px-4 py-2">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs ${
-                            r.status === 'unpaid' ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'
-                          }`}
-                        >
-                          {r.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2">{r.issued_on}</td>
-                      <td className="px-4 py-2 text-right">
-                        <div className="flex items-center justify-end gap-3">
-                          {r.status === 'unpaid' && (
-                            <button className="text-green-600 text-sm" onClick={() => markPaid(r.id)}>
-                              Mark Paid
-                            </button>
-                          )}
-                          <button className="text-red-600 text-sm" onClick={() => deleteBill(r.id)}>
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {bills.length === 0 && (
-                    <tr>
-                      <td className="px-4 py-3 text-slate-500" colSpan={6}>
-                        No billing records
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                ))}
+                {prices.length === 0 && (
+                  <tr>
+                    <td className="px-3 py-2 text-slate-500" colSpan={5}>
+                      No pricing configured
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

@@ -14,25 +14,56 @@ try {
             } else {
                 $search = $_GET['q'] ?? '';
                 $donorId = isset($_GET['donor_id']) ? (int)$_GET['donor_id'] : null;
-                echo json_encode(['data' => CollectionService::list($search, $donorId)]);
+                $status = isset($_GET['status']) ? trim($_GET['status']) : null;
+                echo json_encode(['data' => CollectionService::list($search, $donorId, $status)]);
             }
             break;
         case 'POST':
             $payload = json_decode(file_get_contents('php://input'), true) ?? [];
             $user = Auth::currentUser();
+            if (!$user) {
+                http_response_code(401);
+                echo json_encode(['error' => 'unauthorized']);
+                exit;
+            }
             if ($user) {
                 $payload['collected_by'] = $user['id'];
             }
-            $row = CollectionService::create($payload);
-            echo json_encode(['data' => $row]);
+            try {
+                $row = CollectionService::create($payload);
+                http_response_code(201);
+                echo json_encode(['data' => $row]);
+            } catch (RuntimeException $e) {
+                if (strpos($e->getMessage(), 'duplicate') !== false) {
+                    http_response_code(409);
+                    echo json_encode(['error' => 'duplicate_collection_code', 'message' => 'This collection code already exists. Please use a unique code.']);
+                } else {
+                    throw $e;
+                }
+            }
             break;
         case 'PUT':
         case 'PATCH':
             parse_str($_SERVER['QUERY_STRING'] ?? '', $params);
             $id = isset($params['id']) ? (int)$params['id'] : 0;
             $payload = json_decode(file_get_contents('php://input'), true) ?? [];
-            $row = CollectionService::update($id, $payload);
-            echo json_encode(['data' => $row]);
+            $user = Auth::currentUser();
+            if (!$user) {
+                http_response_code(401);
+                echo json_encode(['error' => 'unauthorized']);
+                exit;
+            }
+            try {
+                $row = CollectionService::update($id, $payload);
+                echo json_encode(['data' => $row]);
+            } catch (RuntimeException $e) {
+                if (strpos($e->getMessage(), 'duplicate') !== false) {
+                    http_response_code(409);
+                    echo json_encode(['error' => 'duplicate_collection_code', 'message' => 'This collection code already exists. Please use a unique code.']);
+                } else {
+                    throw $e;
+                }
+            }
             break;
         case 'DELETE':
             parse_str($_SERVER['QUERY_STRING'] ?? '', $params);
@@ -51,3 +82,4 @@ try {
     http_response_code(409);
     echo json_encode(['error' => $e->getMessage()]);
 }
+
