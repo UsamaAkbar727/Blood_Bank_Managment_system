@@ -31,6 +31,8 @@ export default function Issuance() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [units, setUnits] = useState([]);
   const [issuanceHistory, setIssuanceHistory] = useState([]);
+  const [loadingUnits, setLoadingUnits] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [patientSearch, setPatientSearch] = useState('');
   const [historySearch, setHistorySearch] = useState('');
   const [patientModal, setPatientModal] = useState(false);
@@ -41,39 +43,57 @@ export default function Issuance() {
     setPatients(res.data || []);
   };
 
-  const loadHistory = async (q = '') => {
-    const res = await request(`/api/issuance/index.php?q=${encodeURIComponent(q)}`);
-    setIssuanceHistory(res.data || []);
+  const loadHistory = async (q = '', patientId = null) => {
+    setLoadingHistory(true);
+    setIssuanceHistory([]);
+    try {
+      const query = new URLSearchParams();
+      if (q) query.set('q', q);
+      if (patientId) query.set('patient_id', patientId);
+      const res = await request(`/api/issuance/index.php?${query.toString()}`);
+      setIssuanceHistory(res.data || []);
+    } catch (err) {
+      console.error('Failed to load issuance history', err);
+      setIssuanceHistory([]);
+    } finally {
+      setLoadingHistory(false);
+    }
   };
 
   const loadUnits = async (patient) => {
-    if (!patient) {
+    setLoadingUnits(true);
+    try {
+      if (!patient) {
+        setUnits([]);
+        return;
+      }
+      // Fetch ALL available inventory without blood group restriction
+      const res = await request(`/api/inventory/index.php?action=list&status=available`);
+      const compatibleBloodGroups = compatibility[patient.blood_group] || [];
+      const data = (res.data || [])
+        .filter((u) => compatibleBloodGroups.includes(u.blood_group))
+        .sort((a, b) => {
+          const dateA = new Date(a.expiry_date || '2099-12-31').getTime();
+          const dateB = new Date(b.expiry_date || '2099-12-31').getTime();
+          return dateA - dateB;
+        });
+      setUnits(data);
+    } catch (err) {
+      console.error('Failed to load units', err);
       setUnits([]);
-      return;
+    } finally {
+      setLoadingUnits(false);
     }
-    // Fetch ALL available inventory without blood group restriction
-    const res = await request(`/api/inventory/index.php?action=list&status=available`);
-    // Filter to only compatible blood groups for this patient, and sort by expiry date (FIFO)
-    const compatibleBloodGroups = compatibility[patient.blood_group] || [];
-    const data = (res.data || [])
-      .filter((u) => compatibleBloodGroups.includes(u.blood_group))
-      .sort((a, b) => {
-        // Sort by expiry date ascending (soonest first - FIFO)
-        const dateA = new Date(a.expiry_date || '2099-12-31').getTime();
-        const dateB = new Date(b.expiry_date || '2099-12-31').getTime();
-        return dateA - dateB;
-      });
-    setUnits(data);
   };
 
   useEffect(() => {
     loadPatients();
-    loadHistory();
+    loadHistory(historySearch, selectedPatient?.id ?? null);
   }, []);
 
   useEffect(() => {
     const id = setInterval(() => {
-      loadHistory(historySearch);
+      loadHistory(historySearch, selectedPatient?.id ?? null);
       loadUnits(selectedPatient);
     }, 12000);
     return () => clearInterval(id);
@@ -155,6 +175,7 @@ export default function Issuance() {
               const p = patients.find((x) => x.id === Number(e.target.value));
               setSelectedPatient(p || null);
               loadUnits(p || null);
+              loadHistory(historySearch, p?.id || null);
             }}
           >
             <option value="">Select patient…</option>
@@ -210,13 +231,19 @@ export default function Issuance() {
                   </td>
                 </tr>
               ))}
-              {units.length === 0 && (
+              {loadingUnits ? (
+                <tr>
+                  <td className="px-4 py-3 text-slate-500" colSpan={5}>
+                    Loading compatible units...
+                  </td>
+                </tr>
+              ) : units.length === 0 ? (
                 <tr>
                   <td className="px-4 py-3 text-slate-500" colSpan={5}>
                     {selectedPatient ? 'No compatible units available.' : 'Select a patient to view units.'}
                   </td>
                 </tr>
-              )}
+              ) : null}
             </tbody>
           </table>
         </div>
@@ -248,25 +275,32 @@ export default function Issuance() {
               </tr>
             </thead>
             <tbody>
-              {issuanceHistory.map((row) => (
-                <tr key={row.id} className="border-t border-slate-100">
-                  <td className="px-4 py-2">
-                    {row.patient_name} ({row.patient_code})
+              {loadingHistory ? (
+                <tr>
+                  <td className="px-4 py-2 text-slate-500" colSpan={5}>
+                    Loading issuance history...
                   </td>
-                  <td className="px-4 py-2">
-                    {row.component} / {row.blood_group}
-                  </td>
-                  <td className="px-4 py-2">{row.patient_blood}</td>
-                  <td className="px-4 py-2">{row.issue_date}</td>
-                  <td className="px-4 py-2">{row.issued_by || ''}</td>
                 </tr>
-              ))}
-              {issuanceHistory.length === 0 && (
+              ) : issuanceHistory.length === 0 ? (
                 <tr>
                   <td className="px-4 py-3 text-slate-500" colSpan={5}>
-                    No issuance records
+                    {selectedPatient ? 'No issuance history found for this patient.' : 'No issuance history available.'}
                   </td>
                 </tr>
+              ) : (
+                issuanceHistory.map((row) => (
+                  <tr key={row.id} className="border-t border-slate-100">
+                    <td className="px-4 py-2">
+                      {row.patient_name} ({row.patient_code})
+                    </td>
+                    <td className="px-4 py-2">
+                      {row.component} / {row.blood_group}
+                    </td>
+                    <td className="px-4 py-2">{row.patient_blood}</td>
+                    <td className="px-4 py-2">{row.issue_date}</td>
+                    <td className="px-4 py-2">{row.issued_by || ''}</td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>

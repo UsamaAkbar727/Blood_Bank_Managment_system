@@ -70,10 +70,16 @@ try {
 
 } catch (InvalidArgumentException $e) {
     http_response_code(400);
-    echo json_encode(['error' => $e->getMessage()]);
+    error_log('[drive-export] invalid argument: ' . $e->getMessage());
+    echo json_encode(['error' => 'invalid_argument', 'message' => $e->getMessage()]);
 } catch (RuntimeException $e) {
     http_response_code(500);
+    error_log('[drive-export] drive_error: ' . $e->getMessage());
     echo json_encode(['error' => 'drive_error', 'message' => $e->getMessage()]);
+} catch (Exception $e) {
+    http_response_code(500);
+    error_log('[drive-export] unexpected_error: ' . $e->getMessage());
+    echo json_encode(['error' => 'drive_error', 'message' => 'Unexpected error: ' . $e->getMessage()]);
 }
 
 function generatePdfContent(array $data, int $days): string

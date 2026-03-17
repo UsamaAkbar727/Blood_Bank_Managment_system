@@ -60,12 +60,19 @@ class GoogleDriveService
 
         if ($client->isAccessTokenExpired()) {
             if ($client->getRefreshToken()) {
-                $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
+                $newToken = $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
+                if (isset($newToken['error'])) {
+                    throw new RuntimeException('Failed to refresh Google Drive access token: ' . ($newToken['error_description'] ?? $newToken['error']));
+                }
+                $client->setAccessToken($newToken);
             } else {
                 throw new RuntimeException('Google Drive authentication required. Please complete OAuth setup.');
             }
+
             $accessToken = $client->getAccessToken();
-            file_put_contents($tokenPath, json_encode($accessToken));
+            if (!empty($accessToken)) {
+                file_put_contents($tokenPath, json_encode($accessToken));
+            }
         }
 
         self::$client = $client;
@@ -115,11 +122,21 @@ class GoogleDriveService
         $file->setMimeType($mimeType);
         $file->setParents([$parentFolderId]);
 
-        $uploadedFile = $service->files->create($file, [
-            'data' => $content,
-            'uploadType' => 'media',
-            'fields' => 'id, name, webViewLink, createdTime, owners'
-        ]);
+        try {
+            $uploadedFile = $service->files->create($file, [
+                'data' => $content,
+                'uploadType' => 'media',
+                'fields' => 'id, name, webViewLink, createdTime, owners'
+            ]);
+        } catch (\Google_Service_Exception $e) {
+            $apiError = json_decode($e->getMessage(), true);
+            $message = $apiError['error']['message'] ?? $e->getMessage();
+            error_log('[GoogleDriveService] Drive upload failed: ' . $message);
+            throw new RuntimeException('Google Drive API error: ' . $message);
+        } catch (\Exception $e) {
+            error_log('[GoogleDriveService] Drive upload failed: ' . $e->getMessage());
+            throw new RuntimeException('Google Drive upload failed: ' . $e->getMessage());
+        }
 
         return [
             'id' => $uploadedFile->getId(),
@@ -211,9 +228,21 @@ class GoogleDriveService
         $tokenPath = self::getTokenPath();
         $folderId = getenv('GOOGLE_DRIVE_FOLDER_ID');
 
+        $tokenValid = false;
+        $tokenError = null;
+
+        try {
+            self::getClient();
+            $tokenValid = true;
+        } catch (\Exception $e) {
+            $tokenError = $e->getMessage();
+        }
+
         return [
             'credentials_configured' => $credentialsPath && is_file($credentialsPath),
             'authenticated' => is_file($tokenPath),
+            'token_valid' => $tokenValid,
+            'token_error' => $tokenError,
             'folder_id_configured' => (bool)$folderId,
             'folder_id' => $folderId ?: null,
             'token_path' => $tokenPath,

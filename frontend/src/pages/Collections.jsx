@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { request } from '../lib/api';
 import Modal from '../components/Modal';
 import Toast from '../components/Toast';
@@ -34,6 +34,7 @@ export default function Collections() {
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const [donors, setDonors] = useState([]);
   const [donorSearch, setDonorSearch] = useState('');
+  const [selectedDonor, setSelectedDonor] = useState(null);
 
   const load = useCallback(
     async (q = search) => {
@@ -94,6 +95,10 @@ export default function Collections() {
     // Validate required fields
     if (!form.donor_id) {
       setError('Please select a donor');
+      return;
+    }
+    if (selectedDonor && Number(selectedDonor.is_eligible) !== 1) {
+      setError('Selected donor is not eligible for collection. Please choose an eligible donor.');
       return;
     }
     if (!form.collection_date) {
@@ -158,17 +163,32 @@ export default function Collections() {
     setOpen(true);
   };
 
+  const dateTimeBlurTimer = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (dateTimeBlurTimer.current) {
+        clearTimeout(dateTimeBlurTimer.current);
+      }
+    };
+  }, []);
+
   const handleDateTimePicker = (event, field) => {
     const value = event.target.value;
     setForm((prev) => ({ ...prev, [field]: value }));
 
-    // Auto-close after final selection when value is set; do not blur on clear.
+    if (dateTimeBlurTimer.current) {
+      clearTimeout(dateTimeBlurTimer.current);
+    }
+
     if (value) {
-      window.setTimeout(() => {
+      // Value is set (after Date->Hour->Minutes->AM/PM flow in native picker). Auto close shortly after final selection.
+      dateTimeBlurTimer.current = window.setTimeout(() => {
         if (document.activeElement === event.target) {
           event.target.blur();
         }
-      }, 120);
+        dateTimeBlurTimer.current = null;
+      }, 250);
     }
   };
 
@@ -207,6 +227,7 @@ export default function Collections() {
               setError('');
               setDonorSearch('');
               setDonors([]);
+              setSelectedDonor(null);
               setOpen(true);
             }}
           >
@@ -269,6 +290,7 @@ export default function Collections() {
           setError('');
           setDonorSearch('');
           setDonors([]);
+          setSelectedDonor(null);
         }}
         title={form.id ? 'Edit Collection' : 'Add Collection'}
       >
@@ -287,21 +309,30 @@ export default function Collections() {
             />
             {donors.length > 0 && (
               <div className="mt-1 border border-slate-200 rounded-lg max-h-40 overflow-y-auto bg-white z-10">
-                {donors.map((donor) => (
-                  <button
-                    key={donor.id}
-                    type="button"
-                    className="w-full text-left px-3 py-2 hover:bg-blue-50 text-sm border-b border-slate-100 last:border-b-0 transition-colors"
-                    onClick={() => {
-                      setForm({ ...form, donor_id: donor.id });
-                      setDonorSearch(`${donor.full_name} (${donor.blood_group})`);
-                      setDonors([]);
-                    }}
-                  >
-                    <div className="font-medium text-slate-900">{donor.full_name}</div>
-                    <div className="text-xs text-slate-500">{donor.donor_code} | {donor.blood_group} | {donor.cnic}</div>
-                  </button>
-                ))}
+                {donors.map((donor) => {
+                  const eligible = Number(donor.is_eligible) === 1;
+                  return (
+                    <button
+                      key={donor.id}
+                      type="button"
+                      disabled={!eligible}
+                      className={`w-full text-left px-3 py-2 border-b border-slate-100 last:border-b-0 transition-colors ${eligible ? 'hover:bg-blue-50' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+                      onClick={() => {
+                        if (!eligible) return;
+                        setForm({ ...form, donor_id: donor.id });
+                        setSelectedDonor(donor);
+                        setDonorSearch(`${donor.full_name} (${donor.blood_group})`);
+                        setDonors([]);
+                      }}
+                    >
+                      <div className="font-medium text-slate-900">{donor.full_name}</div>
+                      <div className="text-xs text-slate-500">
+                        {donor.donor_code} | {donor.blood_group} | {donor.cnic}
+                        {!eligible && <span className="ml-2 text-rose-600">(Not Eligible)</span>}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
             {form.donor_id && (

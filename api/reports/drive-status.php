@@ -29,10 +29,10 @@ try {
                 : 'Credentials file not found or not readable'
         ],
         'authentication' => [
-            'pass' => $status['authenticated'],
-            'message' => $status['authenticated']
-                ? 'Successfully authenticated with Google Drive'
-                : 'Not authenticated. Token file missing or invalid'
+            'pass' => $status['authenticated'] && $status['token_valid'],
+            'message' => $status['authenticated'] && $status['token_valid']
+                ? 'Successfully authenticated with Google Drive and token is valid'
+                : 'Not authenticated or token expired: ' . ($status['token_error'] ?? 'Token file missing or invalid')
         ],
         'folder_configured' => [
             'pass' => $status['folder_id_configured'],

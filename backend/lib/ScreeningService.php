@@ -15,13 +15,6 @@ class ScreeningService
         }
 
         $testDate = $input['test_date'] ?? date('Y-m-d H:i:s');
-        $bloodGroup = $input['blood_group_confirmed'] ?? '';
-        if (!$bloodGroup) {
-            throw new InvalidArgumentException('missing_blood_group');
-        }
-        if (!in_array($bloodGroup, self::BLOOD_GROUPS, true)) {
-            throw new InvalidArgumentException('invalid_blood_group');
-        }
 
         $resultStatus = $input['result_status'] ?? 'pending';
         if (!in_array($resultStatus, ['pending', 'safe', 'rejected'], true)) {
@@ -38,7 +31,7 @@ class ScreeningService
             'hiv' => (int)($input['hiv'] ?? 0),
             'malaria' => (int)($input['malaria'] ?? 0),
             'syphilis' => (int)($input['syphilis'] ?? 0),
-            'blood_group_confirmed' => $bloodGroup,
+            'blood_group_confirmed' => null,
             'hemoglobin_level' => $input['hemoglobin_level'] ?? null,
             'result_status' => $resultStatus,
             'remarks' => $input['remarks'] ?? null,
@@ -53,6 +46,16 @@ class ScreeningService
         $row = $stmt->get_result()->fetch_assoc();
         $stmt->close();
         return $row ?: null;
+    }
+
+    private static function collectionBloodGroup(int $collectionId): ?string
+    {
+        $stmt = db()->prepare('SELECT d.blood_group FROM collections c JOIN donors d ON d.id = c.donor_id WHERE c.id=? LIMIT 1');
+        $stmt->bind_param('i', $collectionId);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $row ? $row['blood_group'] : null;
     }
 
     private static function upsertInventory(array $collection, array $screen): void
@@ -163,6 +166,12 @@ class ScreeningService
             throw new InvalidArgumentException('collection_not_found');
         }
 
+        $bloodGroup = self::collectionBloodGroup($data['collection_id']);
+        if (!$bloodGroup || !in_array($bloodGroup, self::BLOOD_GROUPS, true)) {
+            throw new InvalidArgumentException('invalid_blood_group');
+        }
+        $data['blood_group_confirmed'] = $bloodGroup;
+
         if ($targetId > 0) {
             $existing = self::screeningDataById($targetId);
             if (!$existing) {
@@ -173,12 +182,12 @@ class ScreeningService
             }
         }
 
-        $anyReactive = $data['hbsag'] || $data['hcv'] || $data['hiv'] || $data['malaria'] || $data['syphilis'];
-        if ($anyReactive) {
-            $data['result_status'] = 'rejected';
-        } elseif ($data['result_status'] === 'pending') {
-            $data['result_status'] = 'safe'; // default to safe if explicitly negative
-        }
+        $reactiveCount = (int)$data['hbsag']
+            + (int)$data['hcv']
+            + (int)$data['hiv']
+            + (int)$data['malaria']
+            + (int)$data['syphilis'];
+        $data['result_status'] = $reactiveCount > 0 ? 'rejected' : 'safe';
 
         if ($targetId > 0) {
             $stmt = db()->prepare('UPDATE screening_tests SET tested_by=?, test_date=?, hbsag=?, hcv=?, hiv=?, malaria=?, syphilis=?, blood_group_confirmed=?, hemoglobin_level=?, result_status=?, remarks=? WHERE id=?');

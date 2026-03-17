@@ -17,9 +17,18 @@ export async function request(path, { method = 'GET', body, headers = {}, ...res
 
   const res = await fetch(path, init);
   let data = null;
-  const contentType = res.headers.get('content-type') || '';
+
+  if (res.status === 204 || res.status === 205) {
+    return null;
+  }
+
+  const contentType = (res.headers.get('content-type') || '').toLowerCase();
   if (contentType.includes('application/json')) {
-    data = await res.json();
+    try {
+      data = await res.json();
+    } catch (e) {
+      data = null;
+    }
   } else {
     data = await res.text();
   }

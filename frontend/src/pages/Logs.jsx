@@ -1,24 +1,60 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { request } from '../lib/api';
 import Toast from '../components/Toast';
 
 export default function Logs() {
-  const [rows, setRows] = useState([]);
+  const [allRows, setAllRows] = useState([]);
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState({ message: '', type: 'info' });
+  const [loading, setLoading] = useState(false);
+  const searchDebounce = useRef(null);
+  const searchRef = useRef('');
 
-  const load = async (q = '') => {
-    const res = await request(`/api/logs/index.php?q=${encodeURIComponent(q)}`);
-    setRows(res.data || []);
+  const load = async (q = '', { showLoading = false } = {}) => {
+    if (showLoading) {
+      setLoading(true);
+    }
+    try {
+      const res = await request(`/api/logs/index.php?q=${encodeURIComponent(q)}`);
+      setAllRows(res.data || []);
+    } catch (err) {
+      setToast({ message: err.message || 'Unable to load logs.', type: 'error' });
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
   };
 
+  const filteredRows = useMemo(() => {
+    const normalized = search.trim().toLowerCase();
+    if (!normalized) return allRows;
+
+    return allRows.filter((r) => {
+      const username = (r.user_name || 'system').toLowerCase();
+      const action = (r.action || '').toLowerCase();
+      const entity = (r.entity_type || '').toLowerCase();
+      const entityId = String(r.entity_id || '').toLowerCase();
+      return (
+        username.includes(normalized) ||
+        action.includes(normalized) ||
+        entity.includes(normalized) ||
+        entityId.includes(normalized)
+      );
+    });
+  }, [allRows, search]);
+
   useEffect(() => {
-    load();
-    const id = setInterval(() => load(search), 12000);
+    load('', { showLoading: true });
+    const id = setInterval(() => load(searchRef.current, { showLoading: false }), 12000);
     return () => clearInterval(id);
-  }, [search]);
+  }, []);
 
   const handleDelete = async (id) => {
+    if (!window.confirm('Delete this log entry? This cannot be undone.')) {
+      return;
+    }
+
     try {
       await request('/api/logs/index.php', {
         method: 'DELETE',
@@ -40,10 +76,20 @@ export default function Logs() {
           type="search"
           value={search}
           onChange={(e) => {
-            setSearch(e.target.value);
-            load(e.target.value);
+            const value = e.target.value;
+            setSearch(value);
+            searchRef.current = value;
+
+            if (searchDebounce.current) {
+              clearTimeout(searchDebounce.current);
+            }
+
+            // Debounce server-side search while showing local filtered rows immediately
+            searchDebounce.current = window.setTimeout(() => {
+              load(value, { showLoading: false });
+            }, 150);
           }}
-          placeholder="Filter by action/entity"
+          placeholder="Filter by user/action/entity"
           className="border border-slate-200 rounded-lg px-3 py-2 w-72"
         />
       </div>
@@ -62,28 +108,35 @@ export default function Logs() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r, idx) => (
-                <tr key={idx} className="border-t border-slate-100">
-                  <td className="px-4 py-2">{r.created_at}</td>
-                  <td className="px-4 py-2">{r.user_name ?? 'system'}</td>
-                  <td className="px-4 py-2">{r.action}</td>
-                  <td className="px-4 py-2">{r.entity_type}</td>
-                  <td className="px-4 py-2">{r.entity_id ?? ''}</td>
-                  <td className="px-4 py-2">{r.ip_address ?? ''}</td>
-                  <td className="px-4 py-2 text-right">
-                    <button
-                      onClick={() => handleDelete(r.id)}
-                      className="text-red-500 hover:text-red-700 text-sm font-medium"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {rows.length === 0 && (
+              {loading ? (
                 <tr>
                   <td className="px-4 py-3 text-slate-500" colSpan={7}>
-                    No log entries
+                    Loading logs...
+                  </td>
+                </tr>
+              ) : filteredRows.length > 0 ? (
+                filteredRows.map((r, idx) => (
+                  <tr key={idx} className="border-t border-slate-100">
+                    <td className="px-4 py-2">{r.created_at}</td>
+                    <td className="px-4 py-2">{r.user_name ?? 'system'}</td>
+                    <td className="px-4 py-2">{r.action}</td>
+                    <td className="px-4 py-2">{r.entity_type}</td>
+                    <td className="px-4 py-2">{r.entity_id ?? ''}</td>
+                    <td className="px-4 py-2">{r.ip_address ?? ''}</td>
+                    <td className="px-4 py-2 text-right">
+                      <button
+                        onClick={() => handleDelete(r.id)}
+                        className="text-red-500 hover:text-red-700 text-sm font-medium"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td className="px-4 py-3 text-slate-500" colSpan={7}>
+                    No logs found
                   </td>
                 </tr>
               )}

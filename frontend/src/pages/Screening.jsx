@@ -3,7 +3,6 @@ import Modal from '../components/Modal';
 import Toast from '../components/Toast';
 import { classNames, request } from '../lib/api';
 
-const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const TEST_FIELDS = [
   { key: 'hiv', label: 'HIV' },
   { key: 'hbsag', label: 'Hepatitis B (HBS)' },
@@ -150,7 +149,6 @@ export default function Screening() {
     const payload = {
       collection_id: Number(form.collection_id),
       test_date: form.test_date.replace('T', ' '),
-      blood_group_confirmed: form.blood_group_confirmed,
       hemoglobin_level: form.hemoglobin_level === '' ? null : Number(form.hemoglobin_level),
       result_status: form.result_status,
       remarks: form.remarks,
@@ -359,19 +357,13 @@ export default function Screening() {
             </div>
             <div>
               <label className="text-sm text-slate-600">Confirmed Blood Group</label>
-              <select
-                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
-                value={form.blood_group_confirmed}
-                onChange={(event) => setForm({ ...form, blood_group_confirmed: event.target.value })}
+              <input
+                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 bg-slate-50 text-slate-700"
+                value={form.blood_group_confirmed || selectedCollection?.blood_group || ''}
+                readOnly
                 required
-              >
-                <option value="">Select group</option>
-                {BLOOD_GROUPS.map((group) => (
-                  <option key={group} value={group}>
-                    {group}
-                  </option>
-                ))}
-              </select>
+              />
+              <p className="mt-1 text-xs text-slate-500">Pulled from the donor/collection record.</p>
             </div>
           </div>
 

@@ -97,7 +97,7 @@ class IssuanceService
         return $row ?: null;
     }
 
-    public static function list(string $search = ''): array
+    public static function list(string $search = '', ?int $patientId = null): array
     {
         Permissions::allow('inventory');
         $like = '%' . $search . '%';
@@ -105,10 +105,20 @@ class IssuanceService
                 FROM blood_issuance bi
                 JOIN inventory i ON i.id = bi.inventory_id
                 JOIN patients p ON p.id = bi.patient_id
-                WHERE p.full_name LIKE ? OR p.patient_code LIKE ? OR i.blood_group LIKE ?
-                ORDER BY bi.issue_date DESC LIMIT 200';
+                WHERE (p.full_name LIKE ? OR p.patient_code LIKE ? OR i.blood_group LIKE ?)';
+
+        if ($patientId) {
+            $sql .= ' AND bi.patient_id = ?';
+        }
+
+        $sql .= ' ORDER BY bi.issue_date DESC LIMIT 200';
+
         $stmt = db()->prepare($sql);
-        $stmt->bind_param('sss', $like, $like, $like);
+        if ($patientId) {
+            $stmt->bind_param('sssi', $like, $like, $like, $patientId);
+        } else {
+            $stmt->bind_param('sss', $like, $like, $like);
+        }
         $stmt->execute();
         $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $stmt->close();

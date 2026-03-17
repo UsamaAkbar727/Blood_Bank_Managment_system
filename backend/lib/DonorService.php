@@ -150,7 +150,7 @@ class DonorService
     {
         Permissions::allow('donors');
         $search = '%' . $search . '%';
-        $stmt = db()->prepare('SELECT * FROM donors WHERE full_name LIKE ? OR donor_code LIKE ? OR cnic LIKE ? OR blood_group LIKE ? ORDER BY created_at DESC LIMIT 200');
+        $stmt = db()->prepare('SELECT * FROM donors WHERE is_eligible = 1 AND (full_name LIKE ? OR donor_code LIKE ? OR cnic LIKE ? OR blood_group LIKE ?) ORDER BY created_at DESC LIMIT 200');
         $stmt->bind_param('ssss', $search, $search, $search, $search);
         $stmt->execute();
         $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);

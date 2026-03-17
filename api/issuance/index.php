@@ -12,7 +12,8 @@ try {
                 echo json_encode(['data' => IssuanceService::get((int)$_GET['id'])]);
             } else {
                 $q = $_GET['q'] ?? '';
-                echo json_encode(['data' => IssuanceService::list($q)]);
+                $patientId = isset($_GET['patient_id']) ? (int)$_GET['patient_id'] : null;
+                echo json_encode(['data' => IssuanceService::list($q, $patientId)]);
             }
             break;
         case 'POST':
