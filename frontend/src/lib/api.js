@@ -25,7 +25,9 @@ export async function request(path, { method = 'GET', body, headers = {}, ...res
   }
 
   if (!res.ok) {
-    const errorMessage = typeof data === 'object' && data?.error ? data.error : res.statusText;
+    const errorMessage = typeof data === 'object'
+      ? (data?.message || data?.error || res.statusText)
+      : res.statusText;
     throw new Error(errorMessage || 'Request failed');
   }
   return data;

@@ -158,6 +158,20 @@ export default function Collections() {
     setOpen(true);
   };
 
+  const handleDateTimePicker = (event, field) => {
+    const value = event.target.value;
+    setForm((prev) => ({ ...prev, [field]: value }));
+
+    // Auto-close after final selection when value is set; do not blur on clear.
+    if (value) {
+      window.setTimeout(() => {
+        if (document.activeElement === event.target) {
+          event.target.blur();
+        }
+      }, 120);
+    }
+  };
+
   const computedExpiry = addDays(form.collection_date, expiryRule.shelf_life_days);
 
   const remove = async (id) => {
@@ -324,11 +338,7 @@ export default function Collections() {
               type="datetime-local"
               className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
               value={form.collection_date}
-              onChange={(e) => {
-                setForm((prev) => ({ ...prev, collection_date: e.target.value }));
-                // Auto-close native date-time picker after selection
-                e.target.blur();
-              }}
+              onChange={(e) => handleDateTimePicker(e, 'collection_date')}
               required
             />
           </div>
@@ -369,7 +379,7 @@ export default function Collections() {
                 type="date"
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
                 value={form.expiry_date_override}
-                onChange={(e) => setForm({ ...form, expiry_date_override: e.target.value })}
+                onChange={(e) => handleDateTimePicker(e, 'expiry_date_override')}
                 disabled={!expiryRule.allow_manual_override}
               />
               <p className="text-xs text-slate-500 mt-1">

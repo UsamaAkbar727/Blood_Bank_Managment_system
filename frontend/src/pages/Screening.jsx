@@ -95,6 +95,19 @@ export default function Screening() {
     setOpen(true);
   };
 
+  const handleDateTimePicker = (event, field) => {
+    const value = event.target.value;
+    setForm((prev) => ({ ...prev, [field]: value }));
+
+    if (value) {
+      window.setTimeout(() => {
+        if (document.activeElement === event.target) {
+          event.target.blur();
+        }
+      }, 120);
+    }
+  };
+
   const edit = async (id) => {
     try {
       const res = await request(`/api/screening/index.php?id=${id}`);
@@ -340,7 +353,7 @@ export default function Screening() {
                 type="datetime-local"
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
                 value={form.test_date}
-                onChange={(event) => setForm({ ...form, test_date: event.target.value })}
+                onChange={(event) => handleDateTimePicker(event, 'test_date')}
                 required
               />
             </div>
