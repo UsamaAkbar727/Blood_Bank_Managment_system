@@ -30,34 +30,14 @@ export default function Issuance() {
   const [patientError, setPatientError] = useState('');
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [units, setUnits] = useState([]);
-  const [issuanceHistory, setIssuanceHistory] = useState([]);
   const [loadingUnits, setLoadingUnits] = useState(false);
-  const [loadingHistory, setLoadingHistory] = useState(false);
   const [patientSearch, setPatientSearch] = useState('');
-  const [historySearch, setHistorySearch] = useState('');
   const [patientModal, setPatientModal] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'info' });
 
   const loadPatients = async (q = '') => {
     const res = await request(`/api/patients/index.php?q=${encodeURIComponent(q)}`);
     setPatients(res.data || []);
-  };
-
-  const loadHistory = async (q = '', patientId = null) => {
-    setLoadingHistory(true);
-    setIssuanceHistory([]);
-    try {
-      const query = new URLSearchParams();
-      if (q) query.set('q', q);
-      if (patientId) query.set('patient_id', patientId);
-      const res = await request(`/api/issuance/index.php?${query.toString()}`);
-      setIssuanceHistory(res.data || []);
-    } catch (err) {
-      console.error('Failed to load issuance history', err);
-      setIssuanceHistory([]);
-    } finally {
-      setLoadingHistory(false);
-    }
   };
 
   const loadUnits = async (patient) => {
@@ -88,16 +68,14 @@ export default function Issuance() {
 
   useEffect(() => {
     loadPatients();
-    loadHistory(historySearch, selectedPatient?.id ?? null);
   }, []);
 
   useEffect(() => {
     const id = setInterval(() => {
-      loadHistory(historySearch, selectedPatient?.id ?? null);
       loadUnits(selectedPatient);
     }, 12000);
     return () => clearInterval(id);
-  }, [selectedPatient, historySearch]);
+  }, [selectedPatient]);
 
   const savePatient = async (e) => {
     e.preventDefault();
@@ -141,7 +119,6 @@ export default function Issuance() {
     try {
       await request('/api/issuance/index.php', { method: 'POST', body: payload });
       await loadUnits(selectedPatient);
-      await loadHistory(historySearch);
       setToast({ message: 'Unit issued successfully.', type: 'success' });
     } catch (err) {
       setToast({ message: err.message || 'Unable to issue unit. Please try again.', type: 'error' });
@@ -154,9 +131,9 @@ export default function Issuance() {
   );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
-      <div className="lg:col-span-2 card p-4 flex items-center justify-between gap-3 flex-wrap">
+      <div className="card p-4 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
           <input
             type="search"
@@ -175,7 +152,6 @@ export default function Issuance() {
               const p = patients.find((x) => x.id === Number(e.target.value));
               setSelectedPatient(p || null);
               loadUnits(p || null);
-              loadHistory(historySearch, p?.id || null);
             }}
           >
             <option value="">Select patient…</option>
@@ -244,64 +220,6 @@ export default function Issuance() {
                   </td>
                 </tr>
               ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="card p-4 w-full min-w-0">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-slate-900">Issued History</h3>
-          <input
-            type="search"
-            value={historySearch}
-            onChange={(e) => {
-              setHistorySearch(e.target.value);
-              loadHistory(e.target.value);
-            }}
-            placeholder="Search history"
-            className="border border-slate-200 rounded-lg px-3 py-2 w-40"
-          />
-        </div>
-        <div className="table-responsive overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600 text-left">
-              <tr>
-                <th className="px-4 py-2">Patient</th>
-                <th className="px-4 py-2">Unit</th>
-                <th className="px-4 py-2">Blood</th>
-                <th className="px-4 py-2">Issued</th>
-                <th className="px-4 py-2">By</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loadingHistory ? (
-                <tr>
-                  <td className="px-4 py-2 text-slate-500" colSpan={5}>
-                    Loading issuance history...
-                  </td>
-                </tr>
-              ) : issuanceHistory.length === 0 ? (
-                <tr>
-                  <td className="px-4 py-3 text-slate-500" colSpan={5}>
-                    {selectedPatient ? 'No issuance history found for this patient.' : 'No issuance history available.'}
-                  </td>
-                </tr>
-              ) : (
-                issuanceHistory.map((row) => (
-                  <tr key={row.id} className="border-t border-slate-100">
-                    <td className="px-4 py-2">
-                      {row.patient_name} ({row.patient_code})
-                    </td>
-                    <td className="px-4 py-2">
-                      {row.component} / {row.blood_group}
-                    </td>
-                    <td className="px-4 py-2">{row.patient_blood}</td>
-                    <td className="px-4 py-2">{row.issue_date}</td>
-                    <td className="px-4 py-2">{row.issued_by || ''}</td>
-                  </tr>
-                ))
-              )}
             </tbody>
           </table>
         </div>
