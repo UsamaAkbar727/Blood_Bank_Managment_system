@@ -121,7 +121,7 @@ export default function Backups() {
                   <td className="px-4 py-2">{row.status}</td>
                   <td className="px-4 py-2">{row.uploaded_to_drive ? 'Yes' : 'No'}</td>
                   <td className="px-4 py-2">
-                    {row.status === 'success' ? (
+                    {row.status === 'success' && row.file_exists ? (
                       <a
                         className="text-blue-600 text-sm hover:underline"
                         href={`/api/backups/download.php?file=${encodeURIComponent(row.file_name)}`}
@@ -129,6 +129,19 @@ export default function Backups() {
                       >
                         Download
                       </a>
+                    ) : row.status === 'success' ? (
+                      <button
+                        type="button"
+                        className="text-amber-600 text-sm"
+                        onClick={() =>
+                          setToast({
+                            message: 'Backup file is missing on the server. Please run a new backup.',
+                            type: 'warning',
+                          })
+                        }
+                      >
+                        Missing
+                      </button>
                     ) : (
                       ''
                     )}

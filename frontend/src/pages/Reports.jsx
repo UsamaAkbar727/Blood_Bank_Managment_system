@@ -51,7 +51,7 @@ export default function Reports() {
         });
       }
     } catch (err) {
-      setExportError(err.message || 'Failed to export report to Google Drive');
+      setExportError(err.message || 'Failed to back up database to Google Drive');
     } finally {
       setExporting(false);
     }
@@ -74,16 +74,9 @@ export default function Reports() {
           <button
             disabled={exporting}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm disabled:bg-slate-300 disabled:cursor-not-allowed flex items-center gap-2"
-            onClick={() => exportReport('excel')}
+            onClick={() => exportReport('sql')}
           >
-            {exporting ? '⏳ Uploading...' : '☁️ Save Excel to Drive'}
-          </button>
-          <button
-            disabled={exporting}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm disabled:bg-slate-300 disabled:cursor-not-allowed flex items-center gap-2"
-            onClick={() => exportReport('pdf')}
-          >
-            {exporting ? '⏳ Uploading...' : '☁️ Save PDF to Drive'}
+            {exporting ? '⏳ Uploading...' : '☁️ Backup SQL to Drive'}
           </button>
           <button className="border border-slate-200 px-3 py-2 rounded-lg text-sm" onClick={() => window.print()}>
             Print
@@ -101,7 +94,7 @@ export default function Reports() {
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <strong>✓ Report saved to Google Drive!</strong>
+              <strong>✓ Backup saved to Google Drive!</strong>
               <p className="text-sm mt-1">File: <code className="bg-white px-2 py-1 rounded">{driveLink.name}</code></p>
               <p className="text-xs mt-2">Created: {new Date(driveLink.createdTime).toLocaleString()}</p>
             </div>

@@ -37,8 +37,11 @@ export default function Collections() {
   const [selectedDonor, setSelectedDonor] = useState(null);
   const [donorDropdownOpen, setDonorDropdownOpen] = useState(false);
   const [donorLoadError, setDonorLoadError] = useState('');
-  const [collectionDatePart, setCollectionDatePart] = useState('');
-  const [collectionTimePart, setCollectionTimePart] = useState('');
+  const dateTimeBlurTimer = useRef(null);
+  const dateTimeParts = useRef({ date: '', time: '' });
+  const hasPickedDate = useRef(false);
+  const hasPickedTime = useRef(false);
+  const dateTimeCloseSink = useRef(null);
 
   const load = useCallback(
     async (q = search) => {
@@ -92,18 +95,6 @@ export default function Collections() {
       loadDonors('');
     }
   }, [open, loadDonors]);
-
-  useEffect(() => {
-    if (!open) return;
-    if (form.collection_date) {
-      const [datePart, timePart] = form.collection_date.split('T');
-      setCollectionDatePart(datePart || '');
-      setCollectionTimePart(timePart || '');
-    } else {
-      setCollectionDatePart('');
-      setCollectionTimePart('');
-    }
-  }, [open, form.collection_date]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -181,7 +172,6 @@ export default function Collections() {
     setOpen(true);
   };
 
-  const timeInputRef = useRef(null);
   const donorBlurTimer = useRef(null);
 
   useEffect(() => {
@@ -195,11 +185,52 @@ export default function Collections() {
     };
   }, []);
 
-  const syncCollectionDate = (nextDate, nextTime) => {
-    if (nextDate && nextTime) {
-      setForm((prev) => ({ ...prev, collection_date: `${nextDate}T${nextTime}` }));
-    } else {
-      setForm((prev) => ({ ...prev, collection_date: '' }));
+  const handleDateTimePicker = (event) => {
+    const value = event.target.value;
+    setForm((prev) => ({ ...prev, collection_date: value }));
+
+    if (event.target.type !== 'datetime-local') return;
+
+    if (!value) {
+      hasPickedDate.current = false;
+      hasPickedTime.current = false;
+      dateTimeParts.current = { date: '', time: '' };
+      return;
+    }
+
+    const [nextDate, nextTime] = value.split('T');
+    const prevDate = dateTimeParts.current.date;
+    const prevTime = dateTimeParts.current.time;
+
+    const dateChanged = nextDate !== prevDate;
+    const timeChanged = nextTime !== prevTime;
+
+    if (dateChanged) {
+      hasPickedDate.current = true;
+    }
+
+    dateTimeParts.current = { date: nextDate, time: nextTime };
+
+    const initialTimeWasEmpty = !prevTime;
+    if (timeChanged && !(dateChanged && initialTimeWasEmpty)) {
+      hasPickedTime.current = true;
+    }
+
+    if (nextDate && nextTime && hasPickedDate.current && hasPickedTime.current) {
+      if (dateTimeBlurTimer.current) {
+        clearTimeout(dateTimeBlurTimer.current);
+      }
+      dateTimeBlurTimer.current = window.setTimeout(() => {
+        if (document.activeElement === event.target) {
+          event.target.blur();
+        }
+        if (dateTimeCloseSink.current) {
+          dateTimeCloseSink.current.focus();
+        }
+        hasPickedDate.current = false;
+        hasPickedTime.current = false;
+        dateTimeBlurTimer.current = null;
+      }, 0);
     }
   };
 
@@ -241,8 +272,9 @@ export default function Collections() {
               setSelectedDonor(null);
               setDonorDropdownOpen(false);
               setDonorLoadError('');
-              setCollectionDatePart('');
-              setCollectionTimePart('');
+              hasPickedDate.current = false;
+              hasPickedTime.current = false;
+              dateTimeParts.current = { date: '', time: '' };
               setOpen(true);
             }}
           >
@@ -308,8 +340,9 @@ export default function Collections() {
           setSelectedDonor(null);
           setDonorDropdownOpen(false);
           setDonorLoadError('');
-          setCollectionDatePart('');
-          setCollectionTimePart('');
+          hasPickedDate.current = false;
+          hasPickedTime.current = false;
+          dateTimeParts.current = { date: '', time: '' };
         }}
         title={form.id ? 'Edit Collection' : 'Add Collection'}
       >
@@ -399,34 +432,20 @@ export default function Collections() {
           </div>
           <div>
             <label className="text-sm text-slate-600">Collection Date/Time</label>
-            <div className="mt-1 grid grid-cols-2 gap-3">
-              <input
-                type="date"
-                className="w-full border border-slate-200 rounded-lg px-3 py-2"
-                value={collectionDatePart}
-                onChange={(e) => {
-                  const nextDate = e.target.value;
-                  setCollectionDatePart(nextDate);
-                  syncCollectionDate(nextDate, collectionTimePart);
-                  if (nextDate && timeInputRef.current) {
-                    timeInputRef.current.focus();
-                  }
-                }}
-                required
-              />
-              <input
-                type="time"
-                className="w-full border border-slate-200 rounded-lg px-3 py-2"
-                value={collectionTimePart}
-                onChange={(e) => {
-                  const nextTime = e.target.value;
-                  setCollectionTimePart(nextTime);
-                  syncCollectionDate(collectionDatePart, nextTime);
-                }}
-                required
-                ref={timeInputRef}
-              />
-            </div>
+            <input
+              type="datetime-local"
+              className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
+              value={form.collection_date}
+              onChange={handleDateTimePicker}
+              required
+            />
+            <button
+              type="button"
+              ref={dateTimeCloseSink}
+              tabIndex={-1}
+              aria-hidden="true"
+              className="sr-only"
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -465,7 +484,7 @@ export default function Collections() {
                 type="date"
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 disabled:bg-slate-50 disabled:text-slate-400"
                 value={form.expiry_date_override}
-                onChange={(e) => handleDateTimePicker(e, 'expiry_date_override')}
+                onChange={(e) => setForm({ ...form, expiry_date_override: e.target.value })}
                 disabled={!expiryRule.allow_manual_override}
               />
               <p className="text-xs text-slate-500 mt-1">
@@ -505,8 +524,9 @@ export default function Collections() {
                 setForm(blank);
                 setError('');
                 setOpen(false);
-                setCollectionDatePart('');
-                setCollectionTimePart('');
+                hasPickedDate.current = false;
+                hasPickedTime.current = false;
+                dateTimeParts.current = { date: '', time: '' };
               }}
             >
               Cancel

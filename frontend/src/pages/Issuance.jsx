@@ -24,6 +24,34 @@ const compatibility = {
   'AB+': ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'],
 };
 
+const normalizeBloodGroup = (raw) => {
+  if (!raw) return '';
+  const base = String(raw).trim().toUpperCase();
+  const compact = base.replace(/\s+/g, '').replace(/[–−]/g, '-');
+  if (['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].includes(compact)) {
+    return compact;
+  }
+
+  const text = compact.replace('0', 'O');
+  if (text.includes('AB')) {
+    if (text.includes('NEG')) return 'AB-';
+    if (text.includes('POS')) return 'AB+';
+  }
+  if (text.includes('A') && !text.includes('AB')) {
+    if (text.includes('NEG')) return 'A-';
+    if (text.includes('POS')) return 'A+';
+  }
+  if (text.includes('B') && !text.includes('AB')) {
+    if (text.includes('NEG')) return 'B-';
+    if (text.includes('POS')) return 'B+';
+  }
+  if (text.includes('O')) {
+    if (text.includes('NEG')) return 'O-';
+    if (text.includes('POS')) return 'O+';
+  }
+  return base;
+};
+
 export default function Issuance() {
   const [patients, setPatients] = useState([]);
   const [patientForm, setPatientForm] = useState(blankPatient);
@@ -31,6 +59,8 @@ export default function Issuance() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [units, setUnits] = useState([]);
   const [loadingUnits, setLoadingUnits] = useState(false);
+  const [issuanceHistory, setIssuanceHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [patientSearch, setPatientSearch] = useState('');
   const [patientModal, setPatientModal] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'info' });
@@ -47,11 +77,16 @@ export default function Issuance() {
         setUnits([]);
         return;
       }
+      const patientBlood = normalizeBloodGroup(patient.blood_group);
+      if (!patientBlood) {
+        setUnits([]);
+        return;
+      }
       // Fetch ALL available inventory without blood group restriction
       const res = await request(`/api/inventory/index.php?action=list&status=available`);
-      const compatibleBloodGroups = compatibility[patient.blood_group] || [];
+      const compatibleBloodGroups = compatibility[patientBlood] || [];
       const data = (res.data || [])
-        .filter((u) => compatibleBloodGroups.includes(u.blood_group))
+        .filter((u) => compatibleBloodGroups.includes(normalizeBloodGroup(u.blood_group)))
         .sort((a, b) => {
           const dateA = new Date(a.expiry_date || '2099-12-31').getTime();
           const dateB = new Date(b.expiry_date || '2099-12-31').getTime();
@@ -66,6 +101,23 @@ export default function Issuance() {
     }
   };
 
+  const loadHistory = async (patient) => {
+    setLoadingHistory(true);
+    try {
+      if (!patient) {
+        setIssuanceHistory([]);
+        return;
+      }
+      const res = await request(`/api/issuance/index.php?patient_id=${patient.id}`);
+      setIssuanceHistory(res.data || []);
+    } catch (err) {
+      console.error('Failed to load issuance history', err);
+      setIssuanceHistory([]);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
   useEffect(() => {
     loadPatients();
   }, []);
@@ -73,6 +125,7 @@ export default function Issuance() {
   useEffect(() => {
     const id = setInterval(() => {
       loadUnits(selectedPatient);
+      loadHistory(selectedPatient);
     }, 12000);
     return () => clearInterval(id);
   }, [selectedPatient]);
@@ -119,6 +172,7 @@ export default function Issuance() {
     try {
       await request('/api/issuance/index.php', { method: 'POST', body: payload });
       await loadUnits(selectedPatient);
+      await loadHistory(selectedPatient);
       setToast({ message: 'Unit issued successfully.', type: 'success' });
     } catch (err) {
       setToast({ message: err.message || 'Unable to issue unit. Please try again.', type: 'error' });
@@ -149,9 +203,11 @@ export default function Issuance() {
             className="border border-slate-200 rounded-lg px-3 py-2 min-w-[220px]"
             value={selectedPatient?.id || ''}
             onChange={(e) => {
-              const p = patients.find((x) => x.id === Number(e.target.value));
+              const selectedId = e.target.value;
+              const p = patients.find((x) => String(x.id) === String(selectedId));
               setSelectedPatient(p || null);
               loadUnits(p || null);
+              loadHistory(p || null);
             }}
           >
             <option value="">Select patient…</option>
@@ -178,7 +234,11 @@ export default function Issuance() {
       <div className="card p-4 w-full min-w-0">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-semibold text-slate-900">Compatible Available Units (FIFO)</h3>
-          {selectedPatient && <span className="text-xs text-slate-500">Patient: {selectedPatient.blood_group}</span>}
+          {selectedPatient && (
+            <span className="text-xs text-slate-500">
+              Patient: {normalizeBloodGroup(selectedPatient.blood_group) || selectedPatient.blood_group}
+            </span>
+          )}
         </div>
         <div className="table-responsive overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -217,6 +277,54 @@ export default function Issuance() {
                 <tr>
                   <td className="px-4 py-3 text-slate-500" colSpan={5}>
                     {selectedPatient ? 'No compatible units available.' : 'Select a patient to view units.'}
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="card p-4 w-full min-w-0">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-semibold text-slate-900">Issued History</h3>
+          {selectedPatient && <span className="text-xs text-slate-500">Patient: {selectedPatient.patient_code}</span>}
+        </div>
+        <div className="table-responsive overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-50 text-slate-600 text-left">
+              <tr>
+                <th className="px-4 py-2">Issue Date</th>
+                <th className="px-4 py-2">Unit</th>
+                <th className="px-4 py-2">Component</th>
+                <th className="px-4 py-2">Blood</th>
+                <th className="px-4 py-2">Units</th>
+                <th className="px-4 py-2">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {issuanceHistory.map((row) => (
+                <tr key={row.id} className="border-t border-slate-100">
+                  <td className="px-4 py-2">{row.issue_date}</td>
+                  <td className="px-4 py-2 font-medium text-slate-800">{row.collection_code || row.inventory_id}</td>
+                  <td className="px-4 py-2">{row.component}</td>
+                  <td className="px-4 py-2">
+                    <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-xs">{row.blood_group}</span>
+                  </td>
+                  <td className="px-4 py-2">{row.units_issued}</td>
+                  <td className="px-4 py-2">{row.status}</td>
+                </tr>
+              ))}
+              {loadingHistory ? (
+                <tr>
+                  <td className="px-4 py-3 text-slate-500" colSpan={6}>
+                    Loading issuance history...
+                  </td>
+                </tr>
+              ) : issuanceHistory.length === 0 ? (
+                <tr>
+                  <td className="px-4 py-3 text-slate-500" colSpan={6}>
+                    {selectedPatient ? 'No issuance history found.' : 'Select a patient to view history.'}
                   </td>
                 </tr>
               ) : null}
