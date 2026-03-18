@@ -16,27 +16,35 @@ export async function request(path, { method = 'GET', body, headers = {}, ...res
   }
 
   const res = await fetch(path, init);
-  let data = null;
 
   if (res.status === 204 || res.status === 205) {
     return null;
   }
 
   const contentType = (res.headers.get('content-type') || '').toLowerCase();
-  if (contentType.includes('application/json')) {
-    try {
-      data = await res.json();
-    } catch (e) {
-      data = null;
+  const raw = await res.text();
+  const hasBody = raw.trim() !== '';
+  let data = null;
+
+  if (hasBody) {
+    if (contentType.includes('application/json')) {
+      try {
+        data = JSON.parse(raw);
+      } catch (e) {
+        data = raw;
+      }
+    } else {
+      data = raw;
     }
-  } else {
-    data = await res.text();
   }
 
   if (!res.ok) {
-    const errorMessage = typeof data === 'object'
-      ? (data?.message || data?.error || res.statusText)
-      : res.statusText;
+    let errorMessage = res.statusText;
+    if (data && typeof data === 'object') {
+      errorMessage = data?.message || data?.error || res.statusText;
+    } else if (typeof data === 'string' && data.trim()) {
+      errorMessage = data.trim();
+    }
     throw new Error(errorMessage || 'Request failed');
   }
   return data;

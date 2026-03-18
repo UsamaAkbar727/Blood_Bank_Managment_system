@@ -8,6 +8,10 @@ export default function Settings() {
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [driveStatus, setDriveStatus] = useState(null);
+  const [driveLoading, setDriveLoading] = useState(true);
+  const [driveBusy, setDriveBusy] = useState(false);
+  const [driveError, setDriveError] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -22,6 +26,23 @@ export default function Settings() {
     };
 
     load();
+  }, []);
+
+  const loadDriveStatus = async () => {
+    setDriveLoading(true);
+    setDriveError('');
+    try {
+      const res = await request('/api/reports/drive-status.php');
+      setDriveStatus(res);
+    } catch (err) {
+      setDriveError(err.message || 'Failed to load Google Drive status.');
+    } finally {
+      setDriveLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDriveStatus();
   }, []);
 
   const updateRule = (component, patch) => {
@@ -47,6 +68,20 @@ export default function Settings() {
     }
   };
 
+  const disconnectDrive = async () => {
+    setDriveBusy(true);
+    setDriveError('');
+    try {
+      await request('/api/reports/drive-disconnect.php', { method: 'POST' });
+      setToast({ message: 'Google Drive disconnected.', type: 'success' });
+      loadDriveStatus();
+    } catch (err) {
+      setDriveError(err.message || 'Failed to disconnect Google Drive.');
+    } finally {
+      setDriveBusy(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
@@ -64,6 +99,65 @@ export default function Settings() {
         >
           {saving ? 'Saving...' : 'Save Settings'}
         </button>
+      </section>
+
+      <section className="card p-4 space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Google Drive</h2>
+            <p className="text-sm text-slate-500">Connect Google Drive to export reports and backups.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {driveStatus?.auth_url && (
+              <a
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+                href={driveStatus.auth_url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {driveStatus?.status?.authenticated ? 'Reconnect' : 'Connect'}
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={disconnectDrive}
+              disabled={driveBusy || !driveStatus?.status?.authenticated}
+              className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm disabled:opacity-60"
+            >
+              Disconnect
+            </button>
+            <button
+              type="button"
+              onClick={loadDriveStatus}
+              disabled={driveLoading}
+              className="border border-slate-200 px-4 py-2 rounded-lg text-sm"
+            >
+              {driveLoading ? 'Checking...' : 'Refresh Status'}
+            </button>
+          </div>
+        </div>
+
+        {driveLoading && <div className="text-sm text-slate-500">Checking Google Drive status...</div>}
+        {!driveLoading && driveStatus && (
+          <div className="grid gap-2 text-sm">
+            <div className={driveStatus.ready ? 'text-emerald-700' : 'text-amber-700'}>
+              {driveStatus.message}
+            </div>
+            {driveStatus.checks && (
+              <div className="grid md:grid-cols-3 gap-2">
+                {Object.entries(driveStatus.checks).map(([key, item]) => (
+                  <div key={key} className="border border-slate-200 rounded-lg p-3">
+                    <div className="font-medium text-slate-900">{key.replace('_', ' ')}</div>
+                    <div className={item.pass ? 'text-emerald-700' : 'text-rose-700'}>
+                      {item.message}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {driveError && <div className="text-sm text-red-600">{driveError}</div>}
       </section>
 
       <section className="card p-0 overflow-hidden">
