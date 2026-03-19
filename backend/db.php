@@ -78,6 +78,16 @@ function ensureAppSchema(mysqli $conn): void
     );
 
     $conn->query(
+        "CREATE TABLE IF NOT EXISTS google_drive_tokens (
+            id TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+            refresh_token VARCHAR(512) NULL,
+            access_token TEXT NULL,
+            expires_at DATETIME NULL,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
+    $conn->query(
         "INSERT INTO settings_expiry_rules (component, shelf_life_days, allow_manual_override) VALUES
             ('Whole Blood', 35, 1),
             ('PRBC', 42, 1),

@@ -14,6 +14,24 @@ class BackupService
         $stmt->execute();
         $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $stmt->close();
+        $baseDir = realpath(__DIR__ . '/../..') . '/backups/';
+        foreach ($rows as &$row) {
+            $path = $row['file_path'] ?? '';
+            $exists = false;
+            if ($path && file_exists($path)) {
+                $exists = true;
+            } else {
+                $fallback = $baseDir . ($row['file_name'] ?? '');
+                if (!empty($row['file_name']) && file_exists($fallback)) {
+                    $exists = true;
+                    if (empty($row['file_path'])) {
+                        $row['file_path'] = $fallback;
+                    }
+                }
+            }
+            $row['file_exists'] = $exists ? 1 : 0;
+        }
+        unset($row);
         return $rows;
     }
 
@@ -24,7 +42,25 @@ class BackupService
         $format = strtolower($format);
         $ext = $format === 'pdf' ? 'pdf' : 'xls';
         $fileName = 'bbms_' . $timestamp . '.' . $ext;
-        $filePath = realpath(__DIR__ . '/../..') . '/backups/' . $fileName;
+        $backupDir = realpath(__DIR__ . '/../..') . '/backups';
+        if (!is_dir($backupDir)) {
+            @mkdir($backupDir, 0775, true);
+        }
+        if (!is_dir($backupDir) || !is_writable($backupDir)) {
+            $status = 'failed';
+            $message = 'backup_dir_not_writable';
+            $filePath = $backupDir . '/' . $fileName;
+            self::log($fileName, $filePath, 0, $status, $message, false);
+            return [
+                'file_name' => $fileName,
+                'file_path' => $filePath,
+                'file_size_bytes' => 0,
+                'status' => $status,
+                'message' => $message,
+                'uploaded_to_drive' => false,
+            ];
+        }
+        $filePath = $backupDir . '/' . $fileName;
 
         $status = 'success';
         $message = 'ok';

@@ -45,6 +45,7 @@ export default function Screening() {
   const [error, setError] = useState('');
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const [loading, setLoading] = useState(false);
+  const isDiseasePanelDisabled = form.result_status !== 'rejected';
 
   const load = useCallback(
     async (q = search) => {
@@ -68,6 +69,20 @@ export default function Screening() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (form.result_status === 'rejected') return;
+    if (form.hiv || form.hbsag || form.hcv || form.malaria || form.syphilis) {
+      setForm((current) => ({
+        ...current,
+        hiv: false,
+        hbsag: false,
+        hcv: false,
+        malaria: false,
+        syphilis: false,
+      }));
+    }
+  }, [form.result_status, form.hiv, form.hbsag, form.hcv, form.malaria, form.syphilis]);
 
   const summary = useMemo(() => {
     return rows.reduce(
@@ -314,7 +329,10 @@ export default function Screening() {
           <div>
             <label className="text-sm text-slate-600">Collection Unit</label>
             <select
-              className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
+              className={classNames(
+                'mt-1 w-full border border-slate-200 rounded-lg px-3 py-2',
+                form.id ? 'appearance-none bg-slate-50 text-slate-600 cursor-not-allowed' : '',
+              )}
               value={form.collection_id}
               onChange={(event) => {
                 const nextCollectionId = event.target.value;
@@ -384,7 +402,22 @@ export default function Screening() {
               <select
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
                 value={form.result_status}
-                onChange={(event) => setForm({ ...form, result_status: event.target.value })}
+                onChange={(event) => {
+                  const nextStatus = event.target.value;
+                  setForm((current) => ({
+                    ...current,
+                    result_status: nextStatus,
+                    ...(nextStatus === 'rejected'
+                      ? {}
+                      : {
+                          hiv: false,
+                          hbsag: false,
+                          hcv: false,
+                          malaria: false,
+                          syphilis: false,
+                        }),
+                  }));
+                }}
               >
                 <option value="pending">Pending</option>
                 <option value="safe">Safe</option>
@@ -398,12 +431,21 @@ export default function Screening() {
             <div className="text-sm text-slate-600 mb-2">Disease Screening Panel</div>
             <div className="grid md:grid-cols-2 gap-3">
               {TEST_FIELDS.map((field) => (
-                <label key={field.key} className="flex items-center justify-between border border-slate-200 rounded-xl px-3 py-2">
-                  <span className="text-sm text-slate-700">{field.label}</span>
+                <label
+                  key={field.key}
+                  className={classNames(
+                    'flex items-center justify-between border border-slate-200 rounded-xl px-3 py-2',
+                    isDiseasePanelDisabled ? 'bg-slate-50 text-slate-400' : '',
+                  )}
+                >
+                  <span className={classNames('text-sm', isDiseasePanelDisabled ? 'text-slate-400' : 'text-slate-700')}>
+                    {field.label}
+                  </span>
                   <input
                     type="checkbox"
                     checked={form[field.key]}
                     onChange={(event) => setForm({ ...form, [field.key]: event.target.checked })}
+                    disabled={isDiseasePanelDisabled}
                     className="h-4 w-4"
                   />
                 </label>

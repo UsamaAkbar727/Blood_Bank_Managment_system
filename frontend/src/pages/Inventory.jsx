@@ -83,7 +83,7 @@ export default function Inventory() {
       </div>
 
       <div className="card p-4 flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <input
             type="search"
             value={search}
@@ -92,7 +92,7 @@ export default function Inventory() {
               loadTable(e.target.value, status);
             }}
             placeholder="Search by code, donor, blood, component"
-            className="border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 w-72"
+            className="border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 w-full md:w-72"
           />
           <select
             value={status}
@@ -100,7 +100,7 @@ export default function Inventory() {
               setStatus(e.target.value);
               loadTable(search, e.target.value);
             }}
-            className="border border-slate-200 rounded-lg px-3 py-2"
+            className="border border-slate-200 rounded-lg px-3 py-2 w-full sm:w-auto"
           >
             <option value="">All statuses</option>
             <option value="available">Available</option>

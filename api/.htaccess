@@ -19,12 +19,14 @@
     Header set X-XSS-Protection "1; mode=block"
 </IfModule>
 
-# CORS Configuration for Development
+# CORS Configuration for Development (supports credentials)
 <IfModule mod_headers.c>
-    Header set Access-Control-Allow-Origin "*"
-    Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
-    Header set Access-Control-Allow-Credentials "true"
+    SetEnvIf Origin "^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$" ORIGIN_ALLOWED=$0
+    Header always set Access-Control-Allow-Origin "%{ORIGIN_ALLOWED}e" env=ORIGIN_ALLOWED
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    Header always set Access-Control-Allow-Credentials "true" env=ORIGIN_ALLOWED
+    Header always set Vary "Origin"
 </IfModule>
 
 # PHP Configuration

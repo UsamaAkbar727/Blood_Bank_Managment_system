@@ -264,7 +264,7 @@ export default function Donors() {
               required
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-600">CNIC</label>
               <input
@@ -310,7 +310,7 @@ export default function Donors() {
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-600">Gender</label>
               <select
@@ -339,7 +339,7 @@ export default function Donors() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-600">Phone</label>
               <input
@@ -358,7 +358,7 @@ export default function Donors() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-600">City</label>
               <input

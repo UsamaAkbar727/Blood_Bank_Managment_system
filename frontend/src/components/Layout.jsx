@@ -291,13 +291,147 @@ function Sidebar() {
   );
 }
 
-function TopBar() {
+function MobileNav({ open, onClose }) {
+  const location = useLocation();
+  const [financeOpen, setFinanceOpen] = useState(false);
+
+  useEffect(() => {
+    if (location.pathname.startsWith('/finance')) {
+      setFinanceOpen(true);
+    }
+  }, [location.pathname]);
+
+  return (
+    <div className={classNames('fixed inset-0 z-30 md:hidden', open ? '' : 'pointer-events-none')}>
+      <button
+        type="button"
+        aria-label="Close menu"
+        onClick={onClose}
+        className={classNames(
+          'absolute inset-0 bg-slate-900/40 transition-opacity',
+          open ? 'opacity-100' : 'opacity-0',
+        )}
+      />
+      <div
+        className={classNames(
+          'absolute left-0 top-0 h-full w-72 max-w-[80vw] bg-white shadow-xl border-r border-slate-200 transition-transform',
+          open ? 'translate-x-0' : '-translate-x-full',
+        )}
+      >
+        <div className="px-4 py-5 border-b border-slate-200 flex items-center justify-between">
+          <div>
+            <div className="text-lg font-semibold text-slate-900">Blood Bank</div>
+            <div className="text-xs text-slate-500 mt-1">Navigation</div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-lg text-slate-500 hover:bg-slate-100"
+            aria-label="Close navigation"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M6 6l12 12M6 18L18 6" />
+            </svg>
+          </button>
+        </div>
+        <nav className="px-3 py-3 space-y-1 overflow-y-auto h-[calc(100%-72px)]">
+          {modules.map((item) =>
+            item.key === 'finance' ? (
+              <div key={item.key} className="space-y-1">
+                <button
+                  onClick={() => setFinanceOpen((prev) => !prev)}
+                  className={classNames(
+                    'w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
+                    financeOpen ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50',
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="shrink-0">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </span>
+                  <svg
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={classNames('w-4 h-4 shrink-0 transition-transform', financeOpen ? 'rotate-180' : '')}
+                    aria-hidden="true"
+                  >
+                    <path d="m5 7.5 5 5 5-5" />
+                  </svg>
+                </button>
+                {financeOpen && (
+                  <div className="pl-3 space-y-1">
+                    <NavLink
+                      to="/finance/blood-unit-pricing"
+                      onClick={onClose}
+                      className={({ isActive }) =>
+                        classNames(
+                          'block px-3 py-2 rounded-lg text-sm transition-colors',
+                          isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50',
+                        )
+                      }
+                    >
+                      Blood Unit Pricing
+                    </NavLink>
+                    <NavLink
+                      to="/finance/expense"
+                      onClick={onClose}
+                      className={({ isActive }) =>
+                        classNames(
+                          'block px-3 py-2 rounded-lg text-sm transition-colors',
+                          isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50',
+                        )
+                      }
+                    >
+                      Expenses
+                    </NavLink>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <NavLink
+                key={item.key}
+                to={item.to}
+                onClick={onClose}
+                className={({ isActive }) =>
+                  classNames(
+                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors',
+                    isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-700 hover:bg-slate-50',
+                  )
+                }
+              >
+                <span className="shrink-0">{item.icon}</span>
+                <span>{item.label}</span>
+              </NavLink>
+            ),
+          )}
+        </nav>
+      </div>
+    </div>
+  );
+}
+
+function TopBar({ onMenu }) {
   const { user } = useAuth();
   return (
-    <header className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-slate-200 px-4 py-3 flex items-center justify-between">
-      <div className="text-lg font-semibold text-slate-900 md:hidden">Blood Bank</div>
-      <div className="flex-1" />
+    <header className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur border-b border-slate-200 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
       <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onMenu}
+          className="md:hidden inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100"
+          aria-label="Open navigation menu"
+        >
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <div className="text-lg font-semibold text-slate-900 md:hidden">Blood Bank</div>
+      </div>
+      <div className="flex items-center gap-3 ml-auto">
         <div className="text-sm text-slate-600 text-right">
           <div className="font-medium text-slate-800">{user?.full_name || user?.username}</div>
           <div className="text-xs text-slate-500">{user?.role || 'Staff'}</div>
@@ -311,11 +445,13 @@ function TopBar() {
 }
 
 export function Shell() {
+  const [mobileOpen, setMobileOpen] = useState(false);
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
       <Sidebar />
+      <MobileNav open={mobileOpen} onClose={() => setMobileOpen(false)} />
       <div className="flex flex-col flex-1 md:ml-64 h-screen overflow-y-auto">
-        <TopBar />
+        <TopBar onMenu={() => setMobileOpen(true)} />
         <main className="p-4 md:p-6 space-y-4">
           <Outlet />
         </main>

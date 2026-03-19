@@ -2,6 +2,7 @@
 require_once __DIR__ . '/Permissions.php';
 require_once __DIR__ . '/LogService.php';
 require_once __DIR__ . '/SettingsService.php';
+require_once __DIR__ . '/MedicalCriteriaService.php';
 
 class CollectionService
 {
@@ -93,6 +94,7 @@ class CollectionService
         $stmt->close();
         self::touchLastDonation($data['donor_id'], $data['collection_date']);
         LogService::write($data['collected_by'], 'create', 'collection', $id);
+        MedicalCriteriaService::applyToDonor($data['donor_id'], $data['collected_by'] ?? null);
         return self::get($id);
     }
 
@@ -125,6 +127,7 @@ class CollectionService
         $stmt->close();
         self::touchLastDonation($data['donor_id'], $data['collection_date']);
         LogService::write($data['collected_by'], 'update', 'collection', $id);
+        MedicalCriteriaService::applyToDonor($data['donor_id'], $data['collected_by'] ?? null);
         return self::get($id);
     }
 
@@ -159,7 +162,7 @@ class CollectionService
     public static function get(int $id): ?array
     {
         Permissions::allow('collections');
-        $stmt = db()->prepare('SELECT c.*, d.full_name AS donor_name, d.blood_group FROM collections c JOIN donors d ON d.id = c.donor_id WHERE c.id=? LIMIT 1');
+        $stmt = db()->prepare('SELECT c.*, d.full_name AS donor_name, d.blood_group, u.name AS collected_by_name FROM collections c JOIN donors d ON d.id = c.donor_id LEFT JOIN users u ON u.id = c.collected_by WHERE c.id=? LIMIT 1');
         $stmt->bind_param('i', $id);
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
@@ -174,18 +177,18 @@ class CollectionService
 
         if ($donorId) {
             if ($status) {
-                $stmt = db()->prepare('SELECT c.*, d.full_name AS donor_name, d.blood_group FROM collections c JOIN donors d ON d.id = c.donor_id WHERE c.donor_id = ? AND c.status = ? ORDER BY c.collection_date DESC LIMIT 200');
+                $stmt = db()->prepare('SELECT c.*, d.full_name AS donor_name, d.blood_group, u.name AS collected_by_name FROM collections c JOIN donors d ON d.id = c.donor_id LEFT JOIN users u ON u.id = c.collected_by WHERE c.donor_id = ? AND c.status = ? ORDER BY c.collection_date DESC LIMIT 200');
                 $stmt->bind_param('is', $donorId, $status);
             } else {
-                $stmt = db()->prepare('SELECT c.*, d.full_name AS donor_name, d.blood_group FROM collections c JOIN donors d ON d.id = c.donor_id WHERE c.donor_id = ? ORDER BY c.collection_date DESC LIMIT 200');
+                $stmt = db()->prepare('SELECT c.*, d.full_name AS donor_name, d.blood_group, u.name AS collected_by_name FROM collections c JOIN donors d ON d.id = c.donor_id LEFT JOIN users u ON u.id = c.collected_by WHERE c.donor_id = ? ORDER BY c.collection_date DESC LIMIT 200');
                 $stmt->bind_param('i', $donorId);
             }
         } else {
             if ($status) {
-                $stmt = db()->prepare('SELECT c.*, d.full_name AS donor_name, d.blood_group FROM collections c JOIN donors d ON d.id = c.donor_id WHERE (c.collection_code LIKE ? OR d.full_name LIKE ? OR d.blood_group LIKE ?) AND c.status = ? ORDER BY c.collection_date DESC LIMIT 200');
+                $stmt = db()->prepare('SELECT c.*, d.full_name AS donor_name, d.blood_group, u.name AS collected_by_name FROM collections c JOIN donors d ON d.id = c.donor_id LEFT JOIN users u ON u.id = c.collected_by WHERE (c.collection_code LIKE ? OR d.full_name LIKE ? OR d.blood_group LIKE ?) AND c.status = ? ORDER BY c.collection_date DESC LIMIT 200');
                 $stmt->bind_param('ssss', $searchLike, $searchLike, $searchLike, $status);
             } else {
-                $stmt = db()->prepare('SELECT c.*, d.full_name AS donor_name, d.blood_group FROM collections c JOIN donors d ON d.id = c.donor_id WHERE c.collection_code LIKE ? OR d.full_name LIKE ? OR d.blood_group LIKE ? ORDER BY c.collection_date DESC LIMIT 200');
+                $stmt = db()->prepare('SELECT c.*, d.full_name AS donor_name, d.blood_group, u.name AS collected_by_name FROM collections c JOIN donors d ON d.id = c.donor_id LEFT JOIN users u ON u.id = c.collected_by WHERE c.collection_code LIKE ? OR d.full_name LIKE ? OR d.blood_group LIKE ? ORDER BY c.collection_date DESC LIMIT 200');
                 $stmt->bind_param('sss', $searchLike, $searchLike, $searchLike);
             }
         }

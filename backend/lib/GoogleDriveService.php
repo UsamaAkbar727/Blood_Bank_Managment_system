@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../db.php';
 
 class GoogleDriveService
 {
@@ -15,7 +16,84 @@ class GoogleDriveService
         return __DIR__ . '/../../api/reports/.google_drive_token.json';
     }
 
-    private static function getClient()
+    private static function getDbToken(): ?array
+    {
+        try {
+            $stmt = db()->prepare('SELECT refresh_token, access_token, expires_at FROM google_drive_tokens WHERE id=1 LIMIT 1');
+            if (!$stmt) {
+                return null;
+            }
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            if (!$row) {
+                return null;
+            }
+            $token = null;
+            if (!empty($row['access_token'])) {
+                $decoded = json_decode($row['access_token'], true);
+                if (is_array($decoded)) {
+                    $token = $decoded;
+                }
+            }
+            if (!is_array($token)) {
+                $token = [];
+            }
+            if (!empty($row['refresh_token'])) {
+                $token['refresh_token'] = $row['refresh_token'];
+            }
+            return $token;
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+
+    private static function saveDbToken(array $token): void
+    {
+        $refreshToken = $token['refresh_token'] ?? null;
+        $existing = self::getDbToken();
+        if (!$refreshToken && $existing && !empty($existing['refresh_token'])) {
+            $refreshToken = $existing['refresh_token'];
+            $token['refresh_token'] = $refreshToken;
+        }
+
+        $expiresAt = null;
+        if (!empty($token['expires_in'])) {
+            $created = !empty($token['created']) ? (int)$token['created'] : time();
+            $expiresAt = date('Y-m-d H:i:s', $created + (int)$token['expires_in']);
+        }
+
+        $stmt = db()->prepare('INSERT INTO google_drive_tokens (id, refresh_token, access_token, expires_at) VALUES (1, ?, ?, ?) ON DUPLICATE KEY UPDATE refresh_token=VALUES(refresh_token), access_token=VALUES(access_token), expires_at=VALUES(expires_at)');
+        if (!$stmt) {
+            return;
+        }
+        $refreshValue = $refreshToken;
+        $accessValue = json_encode($token);
+        $stmt->bind_param('sss', $refreshValue, $accessValue, $expiresAt);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    private static function getStoredToken(): ?array
+    {
+        $dbToken = self::getDbToken();
+        if (is_array($dbToken) && !empty($dbToken)) {
+            return $dbToken;
+        }
+
+        $tokenPath = self::getTokenPath();
+        if (is_file($tokenPath)) {
+            $accessToken = json_decode(file_get_contents($tokenPath), true);
+            if (is_array($accessToken)) {
+                self::saveDbToken($accessToken);
+                return $accessToken;
+            }
+        }
+
+        return null;
+    }
+
+    private static function getClient(?string $redirectUri = null)
     {
         if (self::$client !== null) {
             return self::$client;
@@ -45,24 +123,31 @@ class GoogleDriveService
             $client->setClientSecret($clientSecret);
         }
 
+        $redirectFromEnv = getenv('GOOGLE_DRIVE_REDIRECT_URI');
+        $redirectToUse = $redirectFromEnv ?: $redirectUri;
+        if ($redirectToUse) {
+            $client->setRedirectUri($redirectToUse);
+        }
+
         $credentialsPath = getenv('GOOGLE_DRIVE_CREDENTIALS_PATH');
         if ($credentialsPath && is_file($credentialsPath)) {
             $client->setAuthConfig($credentialsPath);
         }
 
-        $tokenPath = self::getTokenPath();
-        if (is_file($tokenPath)) {
-            $accessToken = json_decode(file_get_contents($tokenPath), true);
-            if (is_array($accessToken)) {
-                $client->setAccessToken($accessToken);
-            }
+        $storedToken = self::getStoredToken();
+        if (is_array($storedToken) && !empty($storedToken)) {
+            $client->setAccessToken($storedToken);
         }
 
         if ($client->isAccessTokenExpired()) {
             if ($client->getRefreshToken()) {
-                $newToken = $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
+                $refreshToken = $client->getRefreshToken();
+                $newToken = $client->fetchAccessTokenWithRefreshToken($refreshToken);
                 if (isset($newToken['error'])) {
                     throw new RuntimeException('Failed to refresh Google Drive access token: ' . ($newToken['error_description'] ?? $newToken['error']));
+                }
+                if ($refreshToken) {
+                    $newToken['refresh_token'] = $refreshToken;
                 }
                 $client->setAccessToken($newToken);
             } else {
@@ -71,7 +156,7 @@ class GoogleDriveService
 
             $accessToken = $client->getAccessToken();
             if (!empty($accessToken)) {
-                file_put_contents($tokenPath, json_encode($accessToken));
+                self::saveDbToken($accessToken);
             }
         }
 
@@ -167,7 +252,11 @@ class GoogleDriveService
         }
 
         $mimeType = 'application/octet-stream';
-        if (function_exists('finfo_open')) {
+        $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        if ($extension === 'sql') {
+            $mimeType = 'application/sql';
+        }
+        if ($extension !== 'sql' && function_exists('finfo_open')) {
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             if ($finfo) {
                 $detected = finfo_file($finfo, $filePath);
@@ -196,25 +285,43 @@ class GoogleDriveService
         return $client->createAuthUrl();
     }
 
+    public static function getAuthUrlForRedirect(string $redirectUri): string
+    {
+        $client = self::getClient($redirectUri);
+        $scopes = [
+            \Google_Service_Drive::DRIVE_FILE
+        ];
+        $client->setScopes($scopes);
+        return $client->createAuthUrl();
+    }
+
     /**
      * Handle OAuth callback and save access token
      * 
      * @param string $code The authorization code from Google
      * @return bool True if successful
      */
-    public static function handleAuthCallback(string $code): bool
+    public static function handleAuthCallback(string $code, ?string $redirectUri = null): bool
     {
-        $client = self::getClient();
+        $client = self::getClient($redirectUri);
         $accessToken = $client->fetchAccessTokenWithAuthCode($code);
         
         if (isset($accessToken['error'])) {
             throw new RuntimeException('Failed to authenticate with Google Drive: ' . $accessToken['error']);
         }
 
-        $tokenPath = self::getTokenPath();
-        file_put_contents($tokenPath, json_encode($accessToken));
+        self::saveDbToken($accessToken);
         
         return true;
+    }
+
+    public static function disconnect(): void
+    {
+        $stmt = db()->prepare('DELETE FROM google_drive_tokens WHERE id=1');
+        if ($stmt) {
+            $stmt->execute();
+            $stmt->close();
+        }
     }
 
     /**
@@ -225,11 +332,12 @@ class GoogleDriveService
     public static function getStatus(): array
     {
         $credentialsPath = getenv('GOOGLE_DRIVE_CREDENTIALS_PATH');
-        $tokenPath = self::getTokenPath();
+        $dbToken = self::getDbToken();
         $folderId = getenv('GOOGLE_DRIVE_FOLDER_ID');
 
         $tokenValid = false;
         $tokenError = null;
+        $hasToken = is_array($dbToken) && (!empty($dbToken['refresh_token']) || !empty($dbToken['access_token']));
 
         try {
             self::getClient();
@@ -240,12 +348,12 @@ class GoogleDriveService
 
         return [
             'credentials_configured' => $credentialsPath && is_file($credentialsPath),
-            'authenticated' => is_file($tokenPath),
+            'authenticated' => $hasToken,
             'token_valid' => $tokenValid,
             'token_error' => $tokenError,
             'folder_id_configured' => (bool)$folderId,
             'folder_id' => $folderId ?: null,
-            'token_path' => $tokenPath,
+            'token_path' => null,
         ];
     }
 }

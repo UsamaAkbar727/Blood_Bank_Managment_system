@@ -410,7 +410,7 @@ export default function Collections() {
               </p>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-600">Bag Number</label>
               <input
@@ -449,7 +449,7 @@ export default function Collections() {
               className="sr-only"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-600">Volume (ml)</label>
               <input
@@ -469,7 +469,7 @@ export default function Collections() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-600">Default Expiry</label>
               <input

@@ -153,7 +153,7 @@ export default function Notifications() {
               required
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-600">Type</label>
               <select

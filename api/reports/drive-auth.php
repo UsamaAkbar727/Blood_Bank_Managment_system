@@ -5,6 +5,7 @@
 // 2. Exchanges authorization code for access token and saves to .google_drive_token.json.
 
 require_once __DIR__ . '/../../backend/config.php';
+require_once __DIR__ . '/../../backend/lib/GoogleDriveService.php';
 
 $autoloadFile = __DIR__ . '/../../vendor/autoload.php';
 if (!is_file($autoloadFile)) {
@@ -25,48 +26,28 @@ if (!$clientId || !$clientSecret) {
     exit;
 }
 
-$client = new \Google_Client();
-$client->setClientId($clientId);
-$client->setClientSecret($clientSecret);
-$client->setRedirectUri('http://localhost:8080/api/reports/drive-auth.php');
-$client->addScope(\Google_Service_Drive::DRIVE_FILE);
-$client->setAccessType('offline');
-$client->setPrompt('select_account consent');
-$client->setApplicationName('Blood Bank Management System');
-
-$tokenPath = __DIR__ . '/.google_drive_token.json';
+$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$path = strtok($_SERVER['REQUEST_URI'] ?? '/api/reports/drive-auth.php', '?');
+$redirectUri = $scheme . '://' . $host . $path;
 
 if (!empty($_GET['code'])) {
     $code = $_GET['code'];
-
-    $token = $client->fetchAccessTokenWithAuthCode($code);
-    if (isset($token['error'])) {
+    try {
+        GoogleDriveService::handleAuthCallback($code, $redirectUri);
+    } catch (Throwable $e) {
         http_response_code(500);
-        echo "Google OAuth failed: " . htmlspecialchars($token['error_description'] ?? $token['error']) . "\n";
+        echo "Google OAuth failed: " . htmlspecialchars($e->getMessage()) . "\n";
         exit;
     }
 
-    if (!is_dir(dirname($tokenPath)) && !mkdir(dirname($tokenPath), 0755, true) && !is_dir(dirname($tokenPath))) {
-        http_response_code(500);
-        echo "Unable to create token directory: " . dirname($tokenPath) . "\n";
-        exit;
-    }
-
-    $saved = file_put_contents($tokenPath, json_encode($token));
-    if ($saved === false) {
-        http_response_code(500);
-        echo "Failed to save token to $tokenPath\n";
-        exit;
-    }
-
-    echo "Google Drive token saved to: $tokenPath\n";
+    echo "Google Drive connected successfully.\n";
     echo "Drive folder ID: " . ($driveFolderId ?: 'not configured') . "\n";
-    echo "Token expires at: " . date('c', $token['created'] + ($token['expires_in'] ?? 0)) . "\n";
-    echo "\nYou can now run Drive export endpoints.\n";
+    echo "\nYou can now close this tab and return to Settings.\n";
     exit;
 }
 
 // Not authenticated: redirect to Google OAuth consent screen
-$authUrl = $client->createAuthUrl();
+$authUrl = GoogleDriveService::getAuthUrlForRedirect($redirectUri);
 header('Location: ' . $authUrl);
 exit;

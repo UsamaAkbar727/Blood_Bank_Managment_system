@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/Permissions.php';
 require_once __DIR__ . '/LogService.php';
+require_once __DIR__ . '/MedicalCriteriaService.php';
 
 class DonorService
 {
@@ -28,6 +29,11 @@ class DonorService
             throw new InvalidArgumentException('missing_fields');
         }
 
+        $manualHold = (int)($input['manual_hold'] ?? 0);
+        if (array_key_exists('is_eligible', $input)) {
+            $manualHold = (int)(empty($input['is_eligible']) ? 1 : 0);
+        }
+
         return [
             'donor_code' => $input['donor_code'] ?? ('D-' . strtoupper(bin2hex(random_bytes(3)))),
             'cnic' => $cnic,
@@ -39,7 +45,8 @@ class DonorService
             'email' => $input['email'] ?? null,
             'address' => $input['address'] ?? null,
             'city' => $input['city'] ?? null,
-            'is_eligible' => (int)($input['is_eligible'] ?? 1),
+            'is_eligible' => 1,
+            'manual_hold' => $manualHold,
         ];
     }
 
@@ -48,9 +55,9 @@ class DonorService
         Permissions::allow('donors');
         $data = self::sanitize($input);
 
-        $stmt = db()->prepare('INSERT INTO donors (donor_code, cnic, full_name, gender, date_of_birth, blood_group, phone, email, address, city, is_eligible, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
+        $stmt = db()->prepare('INSERT INTO donors (donor_code, cnic, full_name, gender, date_of_birth, blood_group, phone, email, address, city, is_eligible, manual_hold, created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
         $stmt->bind_param(
-            'ssssssssssii',
+            'ssssssssssiii',
             $data['donor_code'],
             $data['cnic'],
             $data['full_name'],
@@ -62,6 +69,7 @@ class DonorService
             $data['address'],
             $data['city'],
             $data['is_eligible'],
+            $data['manual_hold'],
             $userId
         );
         if (!$stmt->execute()) {
@@ -72,6 +80,7 @@ class DonorService
         $id = $stmt->insert_id;
         $stmt->close();
         LogService::write($userId, 'create', 'donor', $id);
+        MedicalCriteriaService::applyToDonor($id, $userId);
         return self::get($id);
     }
 
@@ -79,9 +88,9 @@ class DonorService
     {
         Permissions::allow('donors');
         $data = self::sanitize($input);
-        $stmt = db()->prepare('UPDATE donors SET donor_code=?, cnic=?, full_name=?, gender=?, date_of_birth=?, blood_group=?, phone=?, email=?, address=?, city=?, is_eligible=? WHERE id=?');
+        $stmt = db()->prepare('UPDATE donors SET donor_code=?, cnic=?, full_name=?, gender=?, date_of_birth=?, blood_group=?, phone=?, email=?, address=?, city=?, is_eligible=?, manual_hold=? WHERE id=?');
         $stmt->bind_param(
-            'ssssssssssii',
+            'ssssssssssiii',
             $data['donor_code'],
             $data['cnic'],
             $data['full_name'],
@@ -93,6 +102,7 @@ class DonorService
             $data['address'],
             $data['city'],
             $data['is_eligible'],
+            $data['manual_hold'],
             $id
         );
         if (!$stmt->execute()) {
@@ -102,6 +112,7 @@ class DonorService
         }
         $stmt->close();
         LogService::write(null, 'update', 'donor', $id);
+        MedicalCriteriaService::applyToDonor($id, null);
         return self::get($id);
     }
 
@@ -143,18 +154,29 @@ class DonorService
         $stmt->execute();
         $res = $stmt->get_result()->fetch_assoc();
         $stmt->close();
-        return $res ?: null;
+        if (!$res) {
+            return null;
+        }
+        return MedicalCriteriaService::refreshIfDue($res);
     }
 
-    public static function list(string $search = ''): array
+    public static function list(string $search = '', bool $eligibleOnly = false): array
     {
         Permissions::allow('donors');
         $search = '%' . $search . '%';
-        $stmt = db()->prepare('SELECT * FROM donors WHERE is_eligible = 1 AND (full_name LIKE ? OR donor_code LIKE ? OR cnic LIKE ? OR blood_group LIKE ?) ORDER BY created_at DESC LIMIT 200');
+        $sql = 'SELECT * FROM donors WHERE (full_name LIKE ? OR donor_code LIKE ? OR cnic LIKE ? OR blood_group LIKE ?)';
+        $sql .= ' ORDER BY created_at DESC';
+        $stmt = db()->prepare($sql);
         $stmt->bind_param('ssss', $search, $search, $search, $search);
         $stmt->execute();
         $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $stmt->close();
+        $rows = array_map(static function (array $row): array {
+            return MedicalCriteriaService::refreshIfDue($row);
+        }, $rows);
+        if ($eligibleOnly) {
+            $rows = array_values(array_filter($rows, static fn($row) => (int)($row['is_eligible'] ?? 1) === 1));
+        }
         return $rows;
     }
 

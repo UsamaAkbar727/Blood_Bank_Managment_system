@@ -15,9 +15,42 @@ class IssuanceService
         'AB+' => ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'],
     ];
 
+    private static function normalizeBloodGroup(?string $raw): string
+    {
+        if ($raw === null) {
+            return '';
+        }
+        $base = strtoupper(trim($raw));
+        $compact = preg_replace('/\s+/', '', $base);
+        $compact = str_replace(["–", "−"], "-", $compact);
+        $valid = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+        if (in_array($compact, $valid, true)) {
+            return $compact;
+        }
+        $text = str_replace('0', 'O', $compact);
+        if (strpos($text, 'AB') !== false) {
+            if (strpos($text, 'NEG') !== false) return 'AB-';
+            if (strpos($text, 'POS') !== false) return 'AB+';
+        }
+        if (strpos($text, 'A') !== false && strpos($text, 'AB') === false) {
+            if (strpos($text, 'NEG') !== false) return 'A-';
+            if (strpos($text, 'POS') !== false) return 'A+';
+        }
+        if (strpos($text, 'B') !== false && strpos($text, 'AB') === false) {
+            if (strpos($text, 'NEG') !== false) return 'B-';
+            if (strpos($text, 'POS') !== false) return 'B+';
+        }
+        if (strpos($text, 'O') !== false) {
+            if (strpos($text, 'NEG') !== false) return 'O-';
+            if (strpos($text, 'POS') !== false) return 'O+';
+        }
+        return $base;
+    }
+
     public static function compatibleUnits(string $patientBlood): array
     {
-        return self::$compatibility[$patientBlood] ?? [];
+        $normalized = self::normalizeBloodGroup($patientBlood);
+        return self::$compatibility[$normalized] ?? [];
     }
 
     private static function assertAvailableInventory(int $inventoryId, string $patientBlood): array
@@ -31,7 +64,8 @@ class IssuanceService
         if (!$row) {
             throw new InvalidArgumentException('unit_not_available');
         }
-        if (!in_array($row['blood_group'], self::compatibleUnits($patientBlood), true)) {
+        $inventoryBlood = self::normalizeBloodGroup($row['blood_group'] ?? '');
+        if (!in_array($inventoryBlood, self::compatibleUnits($patientBlood), true)) {
             throw new InvalidArgumentException('incompatible_blood');
         }
         return $row;

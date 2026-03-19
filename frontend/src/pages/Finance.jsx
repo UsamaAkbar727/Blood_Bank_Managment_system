@@ -223,7 +223,7 @@ export default function Finance({ section = 'pricing' }) {
         title="Add Price"
       >
         <form className="space-y-3" onSubmit={savePrice}>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-600">Component</label>
               <select
@@ -249,7 +249,7 @@ export default function Finance({ section = 'pricing' }) {
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-600">Unit Cost</label>
               <input
@@ -304,7 +304,7 @@ export default function Finance({ section = 'pricing' }) {
         title="Add Expense"
       >
         <form className="space-y-3" onSubmit={saveExpense}>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-600">Category</label>
               <input

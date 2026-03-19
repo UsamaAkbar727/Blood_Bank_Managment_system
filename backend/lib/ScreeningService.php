@@ -2,10 +2,35 @@
 require_once __DIR__ . '/Permissions.php';
 require_once __DIR__ . '/LogService.php';
 require_once __DIR__ . '/SettingsService.php';
+require_once __DIR__ . '/MedicalCriteriaService.php';
 
 class ScreeningService
 {
     private const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+    private const REACTIVE_FIELDS = ['hbsag', 'hcv', 'hiv', 'malaria', 'syphilis'];
+
+    private static function normalizeReactiveFlag($value): int
+    {
+        if (is_bool($value)) {
+            return $value ? 1 : 0;
+        }
+        if (is_int($value)) {
+            return $value === 0 ? 0 : 1;
+        }
+        if (is_float($value)) {
+            return $value == 0.0 ? 0 : 1;
+        }
+        if (is_string($value)) {
+            $normalized = strtolower(trim($value));
+            if ($normalized === '' || $normalized === '0' || $normalized === 'false' || $normalized === 'no' || $normalized === 'off' || $normalized === 'non-reactive' || $normalized === 'negative') {
+                return 0;
+            }
+            if ($normalized === '1' || $normalized === 'true' || $normalized === 'yes' || $normalized === 'on' || $normalized === 'reactive' || $normalized === 'positive') {
+                return 1;
+            }
+        }
+        return $value ? 1 : 0;
+    }
 
     private static function sanitize(array $input): array
     {
@@ -26,16 +51,26 @@ class ScreeningService
             'collection_id' => $collectionId,
             'tested_by' => isset($input['tested_by']) ? (int)$input['tested_by'] : null,
             'test_date' => $testDate,
-            'hbsag' => (int)($input['hbsag'] ?? 0),
-            'hcv' => (int)($input['hcv'] ?? 0),
-            'hiv' => (int)($input['hiv'] ?? 0),
-            'malaria' => (int)($input['malaria'] ?? 0),
-            'syphilis' => (int)($input['syphilis'] ?? 0),
+            'hbsag' => self::normalizeReactiveFlag($input['hbsag'] ?? 0),
+            'hcv' => self::normalizeReactiveFlag($input['hcv'] ?? 0),
+            'hiv' => self::normalizeReactiveFlag($input['hiv'] ?? 0),
+            'malaria' => self::normalizeReactiveFlag($input['malaria'] ?? 0),
+            'syphilis' => self::normalizeReactiveFlag($input['syphilis'] ?? 0),
             'blood_group_confirmed' => null,
             'hemoglobin_level' => $input['hemoglobin_level'] ?? null,
             'result_status' => $resultStatus,
             'remarks' => $input['remarks'] ?? null,
         ];
+    }
+
+    private static function computeResultStatus(array $data): string
+    {
+        foreach (self::REACTIVE_FIELDS as $field) {
+            if (self::normalizeReactiveFlag($data[$field] ?? 0) === 1) {
+                return 'rejected';
+            }
+        }
+        return 'safe';
     }
 
     private static function collectionData(int $collectionId): ?array
@@ -182,15 +217,13 @@ class ScreeningService
             }
         }
 
-        $reactiveCount = (int)$data['hbsag']
-            + (int)$data['hcv']
-            + (int)$data['hiv']
-            + (int)$data['malaria']
-            + (int)$data['syphilis'];
-        $data['result_status'] = $reactiveCount > 0 ? 'rejected' : 'safe';
+        $data['result_status'] = self::computeResultStatus($data);
 
         if ($targetId > 0) {
             $stmt = db()->prepare('UPDATE screening_tests SET tested_by=?, test_date=?, hbsag=?, hcv=?, hiv=?, malaria=?, syphilis=?, blood_group_confirmed=?, hemoglobin_level=?, result_status=?, remarks=? WHERE id=?');
+            if (!$stmt) {
+                throw new RuntimeException('screening_update_prepare_failed');
+            }
             $stmt->bind_param(
                 'isiiiiisdssi',
                 $data['tested_by'],
@@ -208,6 +241,9 @@ class ScreeningService
             );
         } else {
             $stmt = db()->prepare('INSERT INTO screening_tests (collection_id, tested_by, test_date, hbsag, hcv, hiv, malaria, syphilis, blood_group_confirmed, hemoglobin_level, result_status, remarks) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
+            if (!$stmt) {
+                throw new RuntimeException('screening_insert_prepare_failed');
+            }
             $stmt->bind_param(
                 'iisiiiiisdss',
                 $data['collection_id'],
@@ -224,12 +260,29 @@ class ScreeningService
                 $data['remarks']
             );
         }
-        $stmt->execute();
+        try {
+            if (!$stmt->execute()) {
+                $errorCode = (int) $stmt->errno;
+                $stmt->close();
+                if ($errorCode === 1062) {
+                    throw new RuntimeException('screening_already_exists');
+                }
+                throw new RuntimeException('screening_save_failed');
+            }
+        } catch (Throwable $e) {
+            $errorCode = (int) $e->getCode();
+            $stmt->close();
+            if ($errorCode === 1062 || stripos($e->getMessage(), 'duplicate entry') !== false) {
+                throw new RuntimeException('screening_already_exists');
+            }
+            throw $e;
+        }
         $savedId = $targetId > 0 ? $targetId : $stmt->insert_id;
         $stmt->close();
 
         self::applyCollectionState($data['collection_id'], $data['result_status'], $data, $collection);
         LogService::write($data['tested_by'] ?? null, $targetId > 0 ? 'update' : 'create', 'screening', $savedId);
+        MedicalCriteriaService::applyToDonor((int)$collection['donor_id'], $data['tested_by'] ?? null);
 
         return self::get($savedId);
     }
@@ -256,6 +309,10 @@ class ScreeningService
             $stmt->close();
             self::discardInventory($collectionId);
             LogService::write($existing['tested_by'] ? (int)$existing['tested_by'] : null, 'delete', 'screening', $id);
+            $collection = self::collectionData($collectionId);
+            if ($collection) {
+                MedicalCriteriaService::applyToDonor((int)$collection['donor_id'], $existing['tested_by'] ? (int)$existing['tested_by'] : null);
+            }
         }
 
         return $deleted;

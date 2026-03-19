@@ -55,11 +55,29 @@ try {
     }
 } catch (InvalidArgumentException $e) {
     http_response_code(400);
-    echo json_encode(['error' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 } catch (RuntimeException $e) {
+    $message = $e->getMessage();
+    if ($message === 'screening_already_exists') {
+        http_response_code(409);
+        echo json_encode(['success' => false, 'message' => 'Screening record already exists']);
+        exit;
+    }
+    if (stripos($message, 'duplicate entry') !== false || stripos($message, 'uq_screening_collection') !== false) {
+        http_response_code(409);
+        echo json_encode(['success' => false, 'message' => 'Screening record already exists']);
+        exit;
+    }
     http_response_code(409);
-    echo json_encode(['error' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => $message]);
 } catch (Throwable $e) {
+    $code = (int) $e->getCode();
+    $message = $e->getMessage();
+    if ($code === 1062 || stripos($message, 'duplicate entry') !== false || stripos($message, 'uq_screening_collection') !== false) {
+        http_response_code(409);
+        echo json_encode(['success' => false, 'message' => 'Screening record already exists']);
+        exit;
+    }
     http_response_code(500);
-    echo json_encode(['error' => 'internal_server_error', 'message' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'error' => 'internal_server_error', 'message' => $message]);
 }

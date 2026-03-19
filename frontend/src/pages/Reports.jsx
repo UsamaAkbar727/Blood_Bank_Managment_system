@@ -61,11 +61,11 @@ export default function Reports() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-xl font-semibold text-slate-900">Reporting Dashboard</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <select
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
-            className="border border-slate-200 rounded-lg px-3 py-2"
+            className="border border-slate-200 rounded-lg px-3 py-2 w-full sm:w-auto"
           >
             <option value={7}>Last 7 days</option>
             <option value={30}>Last 30 days</option>
@@ -73,12 +73,15 @@ export default function Reports() {
           </select>
           <button
             disabled={exporting}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm disabled:bg-slate-300 disabled:cursor-not-allowed flex items-center gap-2"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm disabled:bg-slate-300 disabled:cursor-not-allowed flex items-center gap-2 w-full sm:w-auto justify-center"
             onClick={() => exportReport('sql')}
           >
-            {exporting ? '⏳ Uploading...' : '☁️ Backup SQL to Drive'}
+            {exporting ? '⏳ Uploading...' : '☁️ Backup in Drive'}
           </button>
-          <button className="border border-slate-200 px-3 py-2 rounded-lg text-sm" onClick={() => window.print()}>
+          <button
+            className="border border-slate-200 px-3 py-2 rounded-lg text-sm w-full sm:w-auto"
+            onClick={() => window.print()}
+          >
             Print
           </button>
         </div>
@@ -92,7 +95,7 @@ export default function Reports() {
 
       {driveLink && (
         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
             <div>
               <strong>✓ Backup saved to Google Drive!</strong>
               <p className="text-sm mt-1">File: <code className="bg-white px-2 py-1 rounded">{driveLink.name}</code></p>

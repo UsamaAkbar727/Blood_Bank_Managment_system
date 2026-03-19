@@ -1,8 +1,10 @@
 <?php
 header('Content-Type: application/json');
+require_once __DIR__ . '/../../backend/config.php';
 require_once __DIR__ . '/../../backend/lib/ReportService.php';
 require_once __DIR__ . '/../../backend/lib/GoogleDriveService.php';
 require_once __DIR__ . '/../../backend/lib/Auth.php';
+require_once __DIR__ . '/../../backend/lib/Permissions.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -19,53 +21,66 @@ try {
         echo json_encode(['error' => 'unauthorized']);
         exit;
     }
+    Permissions::allow('reports');
 
     $payload = json_decode(file_get_contents('php://input'), true) ?? [];
     $format = $payload['format'] ?? 'excel';
     $days = max(1, (int)($payload['days'] ?? 30));
 
-    if (!in_array($format, ['excel', 'pdf'])) {
+    if (!in_array($format, ['excel', 'pdf', 'sql'])) {
         http_response_code(400);
-        echo json_encode(['error' => 'invalid_format', 'message' => 'Format must be "excel" or "pdf"']);
+        echo json_encode(['error' => 'invalid_format', 'message' => 'Format must be "excel", "pdf", or "sql"']);
         exit;
     }
 
-    $data = [
-        'donor_blood_groups' => ReportService::donorBloodGroups(),
-        'daily_collections' => ReportService::dailyCollections($days),
-        'screening_results' => ReportService::screeningResults($days),
-        'inventory_snapshot' => ReportService::inventorySnapshot(),
-        'issuance_daily' => ReportService::issuanceDaily($days),
-        'generated_at' => date('Y-m-d H:i:s'),
-        'generated_by' => $user['name'],
-    ];
+    $tmpPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('bbms_report_', true);
 
-    // Generate file content
-    if ($format === 'pdf') {
-        $content = generatePdfContent($data, $days);
-        $filename = 'BBMS_Report_' . date('Y-m-d_H-i-s') . '.pdf';
-        $mimeType = 'application/pdf';
+    if ($format === 'sql') {
+        $filename = 'BBMS_Backup_' . date('Y-m-d_H-i-s') . '.sql';
+        $mimeType = 'application/sql';
+        $tmpPath .= '_' . basename($filename);
+        generateSqlDump($tmpPath);
     } else {
-        $content = generateExcelContent($data, $days);
-        $filename = 'BBMS_Report_' . date('Y-m-d_H-i-s') . '.xls';
-        $mimeType = 'application/vnd.ms-excel';
-    }
+        $data = [
+            'donor_blood_groups' => ReportService::donorBloodGroups(),
+            'daily_collections' => ReportService::dailyCollections($days),
+            'screening_results' => ReportService::screeningResults($days),
+            'inventory_snapshot' => ReportService::inventorySnapshot(),
+            'issuance_daily' => ReportService::issuanceDaily($days),
+            'generated_at' => date('Y-m-d H:i:s'),
+            'generated_by' => $user['name'],
+        ];
 
-    // Save report temporarily and upload through uploadReport helper.
-    $tmpPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . uniqid('bbms_report_', true) . '_' . basename($filename);
-    file_put_contents($tmpPath, $content);
+        // Generate file content
+        if ($format === 'pdf') {
+            $content = generatePdfContent($data, $days);
+            $filename = 'BBMS_Report_' . date('Y-m-d_H-i-s') . '.pdf';
+            $mimeType = 'application/pdf';
+        } else {
+            $content = generateExcelContent($data, $days);
+            $filename = 'BBMS_Report_' . date('Y-m-d_H-i-s') . '.xls';
+            $mimeType = 'application/vnd.ms-excel';
+        }
+
+        // Save report temporarily and upload through uploadReport helper.
+        $tmpPath .= '_' . basename($filename);
+        file_put_contents($tmpPath, $content);
+    }
 
     $fileInfo = GoogleDriveService::uploadReport($tmpPath, $filename);
     @unlink($tmpPath);
 
     // Persist link in database for auditing/history
-    ReportService::saveDriveExportLink($user['id'], $fileInfo['name'], $fileInfo['id'], $fileInfo['url'], $mimeType, $days);
+    $logDays = $format === 'sql' ? 0 : $days;
+    ReportService::saveDriveExportLink($user['id'], $fileInfo['name'], $fileInfo['id'], $fileInfo['url'], $mimeType, $logDays);
 
     http_response_code(201);
     echo json_encode([
         'success' => true,
         'data' => $fileInfo,
-        'message' => 'Report uploaded successfully to Google Drive'
+        'message' => $format === 'sql'
+            ? 'Database backup uploaded successfully to Google Drive'
+            : 'Report uploaded successfully to Google Drive'
     ]);
 
 } catch (InvalidArgumentException $e) {
@@ -192,4 +207,49 @@ function generateExcelContent(array $data, int $days): string
     $html .= "</table>";
 
     return $html;
+}
+
+function generateSqlDump(string $filePath): void
+{
+    $dumpPath = BACKUP_MYSQLDUMP_PATH ?: 'mysqldump';
+    $command = [
+        $dumpPath,
+        '--host=' . DB_HOST,
+        '--user=' . DB_USER,
+        '--default-character-set=utf8mb4',
+        '--single-transaction',
+        '--routines',
+        '--events',
+        '--triggers',
+        '--databases',
+        DB_NAME,
+    ];
+
+    if (DB_PASS !== '') {
+        $command[] = '--password=' . DB_PASS;
+    }
+
+    $descriptorSpec = [
+        0 => ['pipe', 'r'],
+        1 => ['file', $filePath, 'w'],
+        2 => ['pipe', 'w'],
+    ];
+
+    $process = proc_open($command, $descriptorSpec, $pipes);
+    if (!is_resource($process)) {
+        throw new RuntimeException('Unable to start mysqldump process.');
+    }
+
+    fclose($pipes[0]);
+    $stderr = stream_get_contents($pipes[2]);
+    fclose($pipes[2]);
+
+    $exitCode = proc_close($process);
+    if ($exitCode !== 0) {
+        throw new RuntimeException('mysqldump failed: ' . trim($stderr));
+    }
+
+    if (!is_file($filePath) || filesize($filePath) === 0) {
+        throw new RuntimeException('mysqldump did not produce a valid SQL file.');
+    }
 }

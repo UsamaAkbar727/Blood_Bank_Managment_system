@@ -70,7 +70,7 @@ export default function Logs() {
   return (
     <div className="space-y-3">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
-      <div className="card p-4 flex items-center justify-between">
+      <div className="card p-4 flex items-center justify-between flex-wrap gap-3">
         <h3 className="font-semibold text-slate-900">Audit Logs</h3>
         <input
           type="search"
@@ -90,7 +90,7 @@ export default function Logs() {
             }, 150);
           }}
           placeholder="Filter by user/action/entity"
-          className="border border-slate-200 rounded-lg px-3 py-2 w-72"
+          className="border border-slate-200 rounded-lg px-3 py-2 w-full md:w-72"
         />
       </div>
       <div className="card p-0 overflow-hidden">

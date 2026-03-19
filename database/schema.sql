@@ -45,6 +45,10 @@ CREATE TABLE IF NOT EXISTS donors (
   city VARCHAR(100),
   last_donation_at DATE NULL,
   is_eligible BOOLEAN NOT NULL DEFAULT 1,
+  manual_hold BOOLEAN NOT NULL DEFAULT 0,
+  deferral_reason VARCHAR(255) NULL,
+  deferred_until DATE NULL,
+  eligibility_checked_at DATETIME NULL,
   created_by INT UNSIGNED NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -131,6 +135,21 @@ CREATE TABLE IF NOT EXISTS settings_expiry_rules (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+ALTER TABLE donors
+  ADD COLUMN IF NOT EXISTS manual_hold BOOLEAN NOT NULL DEFAULT 0 AFTER is_eligible,
+  ADD COLUMN IF NOT EXISTS deferral_reason VARCHAR(255) NULL AFTER manual_hold,
+  ADD COLUMN IF NOT EXISTS deferred_until DATE NULL AFTER deferral_reason,
+  ADD COLUMN IF NOT EXISTS eligibility_checked_at DATETIME NULL AFTER deferred_until;
+
+-- Google Drive OAuth token storage (single row id=1)
+CREATE TABLE IF NOT EXISTS google_drive_tokens (
+  id TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+  refresh_token VARCHAR(512) NULL,
+  access_token TEXT NULL,
+  expires_at DATETIME NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT INTO settings_expiry_rules (component, shelf_life_days, allow_manual_override)
 VALUES
   ('Whole Blood', 35, 1),
@@ -142,6 +161,30 @@ VALUES
 ON DUPLICATE KEY UPDATE
   shelf_life_days = VALUES(shelf_life_days),
   allow_manual_override = VALUES(allow_manual_override);
+
+-- Medical eligibility criteria for donor deferral
+CREATE TABLE IF NOT EXISTS settings_medical_criteria (
+  id TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+  min_age_years SMALLINT UNSIGNED NOT NULL,
+  max_age_years SMALLINT UNSIGNED NOT NULL,
+  min_interval_days SMALLINT UNSIGNED NOT NULL,
+  min_hb_male DECIMAL(4,1) NOT NULL,
+  min_hb_female DECIMAL(4,1) NOT NULL,
+  low_hb_deferral_days SMALLINT UNSIGNED NOT NULL,
+  reactive_deferral_days SMALLINT UNSIGNED NOT NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO settings_medical_criteria (id, min_age_years, max_age_years, min_interval_days, min_hb_male, min_hb_female, low_hb_deferral_days, reactive_deferral_days)
+VALUES (1, 18, 60, 90, 13.0, 12.5, 90, 365)
+ON DUPLICATE KEY UPDATE
+  min_age_years = VALUES(min_age_years),
+  max_age_years = VALUES(max_age_years),
+  min_interval_days = VALUES(min_interval_days),
+  min_hb_male = VALUES(min_hb_male),
+  min_hb_female = VALUES(min_hb_female),
+  low_hb_deferral_days = VALUES(low_hb_deferral_days),
+  reactive_deferral_days = VALUES(reactive_deferral_days);
 
 -- Patients who may receive transfusions
 CREATE TABLE IF NOT EXISTS patients (

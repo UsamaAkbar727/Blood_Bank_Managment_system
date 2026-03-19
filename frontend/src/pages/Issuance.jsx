@@ -197,10 +197,10 @@ export default function Issuance() {
               setPatientSearch(e.target.value);
               loadPatients(e.target.value);
             }}
-            className="border border-slate-200 rounded-lg px-3 py-2 w-64"
+            className="border border-slate-200 rounded-lg px-3 py-2 w-full md:w-64"
           />
           <select
-            className="border border-slate-200 rounded-lg px-3 py-2 min-w-[220px]"
+            className="border border-slate-200 rounded-lg px-3 py-2 w-full sm:min-w-[220px] sm:w-auto"
             value={selectedPatient?.id || ''}
             onChange={(e) => {
               const selectedId = e.target.value;
@@ -352,7 +352,7 @@ export default function Issuance() {
               required
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-600">Blood Group</label>
               <select
@@ -382,7 +382,7 @@ export default function Issuance() {
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-600">Date of Birth</label>
               <input

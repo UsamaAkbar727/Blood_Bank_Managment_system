@@ -9,22 +9,34 @@ export default function Barcodes() {
   const [open, setOpen] = useState(false);
   const [labels, setLabels] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
+  const [selectedLabelId, setSelectedLabelId] = useState(null);
   const barcodeRef = useRef(null);
 
-  const renderBarcode = () => {
-    if (!barcodeRef.current) return;
-    const code = bag.code?.trim() || 'BAG-000';
-    JsBarcode(barcodeRef.current, code, { format: 'code128', height: 70, width: 2, fontSize: 14, margin: 6 });
-  };
+  const selectedLabel = labels.find((label) => label.id === selectedLabelId);
 
   useEffect(() => {
-    renderBarcode();
-  }, [bag.code]);
+    if (!labels.length) {
+      setSelectedLabelId(null);
+      return;
+    }
+    const exists = labels.some((label) => label.id === selectedLabelId);
+    if (!exists) {
+      setSelectedLabelId(labels[labels.length - 1].id);
+    }
+  }, [labels, selectedLabelId]);
 
-  const printLabel = () => {
+  useEffect(() => {
+    if (!barcodeRef.current || !selectedLabel) return;
+    const code = selectedLabel.barcode_value?.trim() || selectedLabel.code?.trim() || 'BAG-000';
+    JsBarcode(barcodeRef.current, code, { format: 'code128', height: 70, width: 2, fontSize: 14, margin: 6 });
+  }, [selectedLabelId, selectedLabel]);
+
+  const printLabel = (label) => {
+    if (!label) return;
     const win = window.open('', '_blank', 'width=400,height=600');
-    const meta = `${bag.component || 'Component'} - ${bag.blood || 'Blood'}${bag.expiry ? ' - Exp ' + bag.expiry : ''}`;
-    const extra = bag.volume ? `Volume: ${bag.volume} ml` : '';
+    const meta = `${label.component || 'Component'} - ${label.blood || 'Blood'}${label.expiry ? ' - Exp ' + label.expiry : ''}`;
+    const extra = label.volume ? `Volume: ${label.volume} ml` : '';
+    const code = label.barcode_value || label.code || 'BAG-000';
     win.document.write(`
       <html><head><title>Print Label</title></head><body>
         <div style="padding:16px;font-family:Inter,Arial,sans-serif;border:1px dashed #cbd5e1;width:320px">
@@ -34,7 +46,7 @@ export default function Barcodes() {
           <div style="font-size:12px;margin-top:6px">${extra}</div>
         </div>
         <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
-        <script>JsBarcode('#print-barcode','${bag.code || 'BAG-000'}',{format:'code128',height:70,width:2,fontSize:14,margin:6});window.onload=function(){window.print();window.close();};</script>
+        <script>JsBarcode('#print-barcode','${code}',{format:'code128',height:70,width:2,fontSize:14,margin:6});window.onload=function(){window.print();window.close();};</script>
       </body></html>`);
     win.document.close();
   };
@@ -48,9 +60,9 @@ export default function Barcodes() {
             <button
               className="border border-slate-200 px-4 py-2 rounded-lg text-sm"
               onClick={() => {
-                renderBarcode();
-                printLabel();
+                printLabel(selectedLabel);
               }}
+              disabled={!selectedLabel}
             >
               Print
             </button>
@@ -66,15 +78,23 @@ export default function Barcodes() {
             </button>
           </div>
         </div>
-        <div className="mt-2 border border-dashed border-slate-200 rounded-xl p-3 bg-white">
-          <div className="font-semibold text-slate-800 mb-1">Preview</div>
-          <div className="text-xs text-slate-500 mb-1">
-            {bag.component || 'Component'} - {bag.blood || 'Blood'}
-            {bag.expiry ? ` - Exp ${bag.expiry}` : ''}
+        {selectedLabel ? (
+          <div className="mt-2 border border-dashed border-slate-200 rounded-xl p-3 bg-white">
+            <div className="font-semibold text-slate-800 mb-1">Preview</div>
+            <div className="text-xs text-slate-500 mb-1">
+              {selectedLabel.component || 'Component'} - {selectedLabel.blood || 'Blood'}
+              {selectedLabel.expiry ? ` - Exp ${selectedLabel.expiry}` : ''}
+            </div>
+            <svg ref={barcodeRef} />
+            <div className="text-xs text-slate-600">
+              {selectedLabel.volume ? `Volume: ${selectedLabel.volume} ml` : ''}
+            </div>
           </div>
-          <svg ref={barcodeRef} />
-          <div className="text-xs text-slate-600">{bag.volume ? `Volume: ${bag.volume} ml` : ''}</div>
-        </div>
+        ) : (
+          <div className="mt-2 border border-dashed border-slate-200 rounded-xl p-3 bg-slate-50 text-sm text-slate-500">
+            No label selected yet. Save a label to preview it here.
+          </div>
+        )}
       </div>
 
       <div className="card p-4">
@@ -85,7 +105,21 @@ export default function Barcodes() {
         <div className="space-y-2">
           {labels.length === 0 && <p className="text-sm text-slate-500">No saved labels yet.</p>}
           {labels.map((lbl, idx) => (
-            <div key={`${lbl.code}-${idx}`} className="flex items-center justify-between border border-slate-200 rounded-lg px-3 py-2">
+            <div
+              key={lbl.id}
+              className={`flex items-center justify-between border rounded-lg px-3 py-2 transition-colors ${
+                lbl.id === selectedLabelId ? 'border-blue-300 bg-blue-50' : 'border-slate-200'
+              }`}
+              onClick={() => setSelectedLabelId(lbl.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setSelectedLabelId(lbl.id);
+                }
+              }}
+            >
               <div>
                 <div className="font-medium text-slate-800">{lbl.code}</div>
                 <div className="text-xs text-slate-500">{lbl.component} / {lbl.blood} / {lbl.expiry} / {lbl.volume} ml</div>
@@ -93,7 +127,9 @@ export default function Barcodes() {
               <div className="flex items-center gap-2">
                 <button
                   className="text-blue-600 text-xs"
-                  onClick={() => {
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setSelectedLabelId(lbl.id);
                     setBag(lbl);
                     setEditIndex(idx);
                     setOpen(true);
@@ -103,7 +139,10 @@ export default function Barcodes() {
                 </button>
                 <button
                   className="text-red-600 text-xs"
-                  onClick={() => setLabels((current) => current.filter((_, i) => i !== idx))}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setLabels((current) => current.filter((_, i) => i !== idx));
+                  }}
                 >
                   Delete
                 </button>
@@ -126,14 +165,25 @@ export default function Barcodes() {
           className="space-y-3"
           onSubmit={(e) => {
             e.preventDefault();
-            renderBarcode();
             setLabels((current) => {
-              const newLabel = { ...bag };
               if (editIndex !== null && editIndex >= 0 && editIndex < current.length) {
                 const updated = [...current];
-                updated[editIndex] = newLabel;
+                const existing = current[editIndex];
+                const updatedLabel = {
+                  ...existing,
+                  ...bag,
+                  barcode_value: bag.code?.trim() || existing.barcode_value || existing.code,
+                };
+                updated[editIndex] = updatedLabel;
+                setSelectedLabelId(updatedLabel.id);
                 return updated;
               }
+              const newLabel = {
+                ...bag,
+                id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                barcode_value: bag.code?.trim() || 'BAG-000',
+              };
+              setSelectedLabelId(newLabel.id);
               return [...current, newLabel];
             });
             setBag(blankBag);
@@ -150,7 +200,7 @@ export default function Barcodes() {
               required
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-600">Blood Group</label>
               <select
@@ -177,7 +227,7 @@ export default function Barcodes() {
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-slate-600">Expiry</label>
               <input
@@ -206,9 +256,9 @@ export default function Barcodes() {
               type="button"
               className="border border-slate-200 px-4 py-2 rounded-lg text-sm"
               onClick={() => {
-                renderBarcode();
-                printLabel();
+                printLabel(selectedLabel);
               }}
+              disabled={!selectedLabel}
             >
               Print
             </button>

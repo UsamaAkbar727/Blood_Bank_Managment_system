@@ -20,6 +20,11 @@ try {
     }
 
     $status = GoogleDriveService::getStatus();
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $redirectPath = '/api/reports/drive-auth.php';
+    $redirectUri = $scheme . '://' . $host . $redirectPath;
+    $authUrl = GoogleDriveService::getAuthUrlForRedirect($redirectUri);
     
     $checks = [
         'credentials_file' => [
@@ -49,6 +54,7 @@ try {
         'ready' => $allPass,
         'checks' => $checks,
         'status' => $status,
+        'auth_url' => $authUrl,
         'message' => $allPass 
             ? 'Google Drive integration is ready for use'
             : 'Google Drive integration requires setup. See documentation.',

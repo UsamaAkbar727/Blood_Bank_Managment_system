@@ -13,7 +13,8 @@ try {
                 echo json_encode(['data' => $donor]);
             } else {
                 $search = $_GET['q'] ?? '';
-                echo json_encode(['data' => DonorService::list($search)]);
+                $eligibleOnly = isset($_GET['eligible']) && $_GET['eligible'] === '1';
+                echo json_encode(['data' => DonorService::list($search, $eligibleOnly)]);
             }
             break;
         case 'POST':
