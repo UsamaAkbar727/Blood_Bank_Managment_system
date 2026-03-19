@@ -4,10 +4,14 @@ import { request } from '../lib/api';
 
 export default function Settings() {
   const [rules, setRules] = useState([]);
+  const [medical, setMedical] = useState(null);
   const [error, setError] = useState('');
+  const [medicalError, setMedicalError] = useState('');
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [medicalLoading, setMedicalLoading] = useState(true);
+  const [medicalSaving, setMedicalSaving] = useState(false);
   const [driveStatus, setDriveStatus] = useState(null);
   const [driveLoading, setDriveLoading] = useState(true);
   const [driveBusy, setDriveBusy] = useState(false);
@@ -15,14 +19,25 @@ export default function Settings() {
 
   useEffect(() => {
     const load = async () => {
-      try {
-        const res = await request('/api/settings/expiry.php');
-        setRules(res.data || []);
-      } catch (err) {
-        setError(err.message || 'Failed to load settings.');
-      } finally {
-        setLoading(false);
+      const [expiryRes, medicalRes] = await Promise.allSettled([
+        request('/api/settings/expiry.php'),
+        request('/api/settings/medical.php'),
+      ]);
+
+      if (expiryRes.status === 'fulfilled') {
+        setRules(expiryRes.value.data || []);
+      } else {
+        setError(expiryRes.reason?.message || 'Failed to load settings.');
       }
+
+      if (medicalRes.status === 'fulfilled') {
+        setMedical(medicalRes.value.data || null);
+      } else {
+        setMedicalError(medicalRes.reason?.message || 'Failed to load medical criteria.');
+      }
+
+      setLoading(false);
+      setMedicalLoading(false);
     };
 
     load();
@@ -68,6 +83,24 @@ export default function Settings() {
     }
   };
 
+  const saveMedical = async () => {
+    if (!medical) return;
+    setMedicalSaving(true);
+    setMedicalError('');
+    try {
+      const res = await request('/api/settings/medical.php', {
+        method: 'PUT',
+        body: medical,
+      });
+      setMedical(res.data || medical);
+      setToast({ message: 'Medical criteria updated.', type: 'success' });
+    } catch (err) {
+      setMedicalError(err.message || 'Failed to save medical criteria.');
+    } finally {
+      setMedicalSaving(false);
+    }
+  };
+
   const disconnectDrive = async () => {
     setDriveBusy(true);
     setDriveError('');
@@ -99,6 +132,103 @@ export default function Settings() {
         >
           {saving ? 'Saving...' : 'Save Settings'}
         </button>
+      </section>
+
+      <section className="card p-4 space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Medical Eligibility Criteria</h2>
+            <p className="text-sm text-slate-500">Control donor eligibility rules and automated deferral windows.</p>
+          </div>
+          <button
+            type="button"
+            onClick={saveMedical}
+            disabled={medicalSaving || medicalLoading || !medical}
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg text-sm"
+          >
+            {medicalSaving ? 'Saving...' : 'Save Medical Criteria'}
+          </button>
+        </div>
+
+        {medicalLoading && <div className="text-sm text-slate-500">Loading medical criteria...</div>}
+        {!medicalLoading && medical && (
+          <div className="grid md:grid-cols-3 gap-3 text-sm">
+            <div>
+              <label className="text-slate-600">Minimum Age (years)</label>
+              <input
+                type="number"
+                min="16"
+                value={medical.min_age_years}
+                onChange={(e) => setMedical({ ...medical, min_age_years: Number(e.target.value) })}
+                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="text-slate-600">Maximum Age (years)</label>
+              <input
+                type="number"
+                min="18"
+                value={medical.max_age_years}
+                onChange={(e) => setMedical({ ...medical, max_age_years: Number(e.target.value) })}
+                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="text-slate-600">Minimum Donation Interval (days)</label>
+              <input
+                type="number"
+                min="30"
+                value={medical.min_interval_days}
+                onChange={(e) => setMedical({ ...medical, min_interval_days: Number(e.target.value) })}
+                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="text-slate-600">Min Hemoglobin (Male g/dL)</label>
+              <input
+                type="number"
+                step="0.1"
+                min="10"
+                value={medical.min_hb_male}
+                onChange={(e) => setMedical({ ...medical, min_hb_male: Number(e.target.value) })}
+                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="text-slate-600">Min Hemoglobin (Female g/dL)</label>
+              <input
+                type="number"
+                step="0.1"
+                min="10"
+                value={medical.min_hb_female}
+                onChange={(e) => setMedical({ ...medical, min_hb_female: Number(e.target.value) })}
+                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="text-slate-600">Low Hb Deferral (days)</label>
+              <input
+                type="number"
+                min="0"
+                value={medical.low_hb_deferral_days}
+                onChange={(e) => setMedical({ ...medical, low_hb_deferral_days: Number(e.target.value) })}
+                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="text-slate-600">Reactive Deferral (days)</label>
+              <input
+                type="number"
+                min="0"
+                value={medical.reactive_deferral_days}
+                onChange={(e) => setMedical({ ...medical, reactive_deferral_days: Number(e.target.value) })}
+                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2"
+              />
+              <div className="text-xs text-slate-500 mt-1">Set to 0 for permanent deferral.</div>
+            </div>
+          </div>
+        )}
+        {medicalError && <div className="text-sm text-red-600">{medicalError}</div>}
       </section>
 
       <section className="card p-4 space-y-3">

@@ -15,6 +15,10 @@ const blankForm = {
   city: '',
   address: '',
   is_eligible: true,
+  manual_hold: false,
+  deferral_reason: '',
+  deferred_until: '',
+  eligibility_checked_at: '',
 };
 
 export default function Donors() {
@@ -24,6 +28,11 @@ export default function Donors() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyRows, setHistoryRows] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
+  const [historyDonor, setHistoryDonor] = useState(null);
   const [toast, setToast] = useState({ message: '', type: 'info' });
 
   const load = useCallback(
@@ -76,7 +85,7 @@ export default function Donors() {
       email: form.email,
       city: form.city,
       address: form.address,
-      is_eligible: form.is_eligible ? 1 : 0,
+      manual_hold: form.manual_hold ? 1 : 0,
     };
     const method = form.id ? 'PUT' : 'POST';
     const url = form.id ? `/api/donors/index.php?id=${form.id}` : '/api/donors/index.php';
@@ -105,6 +114,7 @@ export default function Donors() {
       ...row,
       id: row.id,
       is_eligible: !!row.is_eligible,
+      manual_hold: Boolean(row.manual_hold),
     });
     setOpen(true);
   };
@@ -116,6 +126,22 @@ export default function Donors() {
       load();
     } catch (err) {
       setToast({ message: err.message || 'Unable to remove donor. Please try again.', type: 'error' });
+    }
+  };
+
+  const openHistory = async (row) => {
+    setHistoryDonor(row);
+    setHistoryOpen(true);
+    setHistoryLoading(true);
+    setHistoryError('');
+    try {
+      const res = await request(`/api/donors/history.php?id=${row.id}`);
+      setHistoryRows(res.data || []);
+    } catch (err) {
+      setHistoryRows([]);
+      setHistoryError(err.message || 'Unable to load donation history.');
+    } finally {
+      setHistoryLoading(false);
     }
   };
 
@@ -178,10 +204,19 @@ export default function Donors() {
                         row.is_eligible ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
                       }`}
                     >
-                      {row.is_eligible ? 'Eligible' : 'Hold'}
+                      {row.is_eligible ? 'Eligible' : 'Deferred'}
                     </span>
+                    {!row.is_eligible && (row.deferral_reason || row.deferred_until) && (
+                      <div className="text-xs text-slate-500 mt-1">
+                        {row.deferral_reason ? row.deferral_reason : 'Deferred'}
+                        {row.deferred_until ? ` · Until ${row.deferred_until}` : ''}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-2 text-right space-x-2">
+                    <button className="text-slate-600 text-sm" onClick={() => openHistory(row)}>
+                      History
+                    </button>
                     <button className="text-blue-600 text-sm" onClick={() => edit(row)}>
                       Edit
                     </button>
@@ -344,12 +379,18 @@ export default function Donors() {
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input
               type="checkbox"
-              checked={form.is_eligible}
-              onChange={(e) => setForm({ ...form, is_eligible: e.target.checked })}
+              checked={!form.manual_hold}
+              onChange={(e) => setForm({ ...form, manual_hold: !e.target.checked })}
               className="h-4 w-4"
             />
-            Eligible to donate
+            Eligible to donate (uncheck to place manual hold)
           </label>
+          {(form.manual_hold || !form.is_eligible) && (
+            <div className="text-xs text-slate-500">
+              {form.manual_hold ? 'Manual hold enabled. Eligibility will be recalculated after saving.' : (form.deferral_reason || 'Deferred')}
+              {!form.manual_hold && form.deferred_until ? ` · Until ${form.deferred_until}` : ''}
+            </div>
+          )}
           {error && <div className="text-red-600 text-sm">{error}</div>}
           <div className="flex gap-2 justify-end">
             <button
@@ -371,6 +412,68 @@ export default function Donors() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        open={historyOpen}
+        onClose={() => {
+          setHistoryOpen(false);
+          setHistoryRows([]);
+          setHistoryError('');
+          setHistoryDonor(null);
+        }}
+        title={`Donation History${historyDonor ? ` · ${historyDonor.full_name}` : ''}`}
+      >
+        <div className="space-y-3">
+          {historyLoading && <div className="text-sm text-slate-500">Loading donation history...</div>}
+          {!historyLoading && historyError && <div className="text-sm text-red-600">{historyError}</div>}
+          {!historyLoading && !historyError && (
+            <div className="table-responsive overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-50 text-slate-600 text-left">
+                  <tr>
+                    <th className="px-4 py-2">Collection</th>
+                    <th className="px-4 py-2">Date</th>
+                    <th className="px-4 py-2">Status</th>
+                    <th className="px-4 py-2">Bag</th>
+                    <th className="px-4 py-2">Volume</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historyRows.map((row, idx) => (
+                    <tr key={`${row.collection_code}-${idx}`} className="border-t border-slate-100">
+                      <td className="px-4 py-2 font-medium text-slate-800">{row.collection_code}</td>
+                      <td className="px-4 py-2">{row.collection_date}</td>
+                      <td className="px-4 py-2">{row.status}</td>
+                      <td className="px-4 py-2">{row.bag_type || '-'}</td>
+                      <td className="px-4 py-2">{row.volume_ml ? `${row.volume_ml} ml` : '-'}</td>
+                    </tr>
+                  ))}
+                  {historyRows.length === 0 && (
+                    <tr>
+                      <td className="px-4 py-3 text-slate-500" colSpan={5}>
+                        No donation history available.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <button
+              className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm"
+              onClick={() => {
+                setHistoryOpen(false);
+                setHistoryRows([]);
+                setHistoryError('');
+                setHistoryDonor(null);
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

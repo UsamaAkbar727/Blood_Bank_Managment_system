@@ -291,6 +291,7 @@ export default function Collections() {
                 <th className="px-4 py-2">Donor</th>
                 <th className="px-4 py-2">Blood</th>
                 <th className="px-4 py-2">Date</th>
+                <th className="px-4 py-2">Phlebotomist</th>
                 <th className="px-4 py-2">Volume</th>
                 <th className="px-4 py-2">Status</th>
                 <th className="px-4 py-2 text-right">Actions</th>
@@ -303,6 +304,7 @@ export default function Collections() {
                   <td className="px-4 py-2">{row.donor_name || ''}</td>
                   <td className="px-4 py-2">{row.blood_group || ''}</td>
                   <td className="px-4 py-2">{row.collection_date}</td>
+                  <td className="px-4 py-2">{row.collected_by_name || '-'}</td>
                   <td className="px-4 py-2">{row.volume_ml} ml</td>
                   <td className="px-4 py-2">
                     <span className="px-2 py-1 rounded-full bg-slate-100 text-slate-700 text-xs">{row.status}</span>
@@ -319,7 +321,7 @@ export default function Collections() {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td className="px-4 py-3 text-slate-500" colSpan={7}>
+                  <td className="px-4 py-3 text-slate-500" colSpan={8}>
                     No records
                   </td>
                 </tr>
