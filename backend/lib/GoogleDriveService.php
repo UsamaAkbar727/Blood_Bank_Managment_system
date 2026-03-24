@@ -72,6 +72,12 @@ class GoogleDriveService
         $stmt->bind_param('sss', $refreshValue, $accessValue, $expiresAt);
         $stmt->execute();
         $stmt->close();
+
+        // Also save to file if path is configured
+        $tokenPath = self::getTokenPath();
+        if ($tokenPath) {
+            file_put_contents($tokenPath, json_encode($token, JSON_PRETTY_PRINT));
+        }
     }
 
     private static function getStoredToken(): ?array
@@ -93,7 +99,7 @@ class GoogleDriveService
         return null;
     }
 
-    private static function getClient(?string $redirectUri = null)
+    private static function getClient(?string $redirectUri = null, bool $requireAuth = true)
     {
         if (self::$client !== null) {
             return self::$client;
@@ -139,7 +145,7 @@ class GoogleDriveService
             $client->setAccessToken($storedToken);
         }
 
-        if ($client->isAccessTokenExpired()) {
+        if ($requireAuth && $client->isAccessTokenExpired()) {
             if ($client->getRefreshToken()) {
                 $refreshToken = $client->getRefreshToken();
                 $newToken = $client->fetchAccessTokenWithRefreshToken($refreshToken);
@@ -277,7 +283,7 @@ class GoogleDriveService
      */
     public static function getAuthUrl(): string
     {
-        $client = self::getClient();
+        $client = self::getClient(null, false);
         $scopes = [
             \Google_Service_Drive::DRIVE_FILE
         ];
@@ -287,7 +293,7 @@ class GoogleDriveService
 
     public static function getAuthUrlForRedirect(string $redirectUri): string
     {
-        $client = self::getClient($redirectUri);
+        $client = self::getClient($redirectUri, false);
         $scopes = [
             \Google_Service_Drive::DRIVE_FILE
         ];
@@ -303,7 +309,7 @@ class GoogleDriveService
      */
     public static function handleAuthCallback(string $code, ?string $redirectUri = null): bool
     {
-        $client = self::getClient($redirectUri);
+        $client = self::getClient($redirectUri, false);
         $accessToken = $client->fetchAccessTokenWithAuthCode($code);
         
         if (isset($accessToken['error'])) {

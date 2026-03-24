@@ -136,7 +136,7 @@ export default function Finance({ section = 'pricing' }) {
                   <tr key={idx} className="border-t border-slate-100">
                     <td className="px-3 py-2">{r.component}</td>
                     <td className="px-3 py-2">{r.blood_group}</td>
-                    <td className="px-3 py-2">{Number(r.unit_cost).toFixed(2)}</td>
+                    <td className="px-3 py-2">{formatCurrency(r.unit_cost)}</td>
                     <td className="px-3 py-2">{r.effective_from}</td>
                     <td className="px-3 py-2 text-right">
                       <button className="text-red-600 text-sm" onClick={() => deletePrice(r.id)}>

@@ -1,3 +1,5 @@
+import { APP_CURRENCY, APP_LOCALE } from './constants';
+
 export async function request(path, { method = 'GET', body, headers = {}, ...rest } = {}) {
   const init = {
     method,
@@ -58,11 +60,15 @@ export const api = {
 
 export function formatNumber(value) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return '0';
-  return new Intl.NumberFormat().format(value);
+  return new Intl.NumberFormat(APP_LOCALE).format(value);
 }
 
 export function formatCurrency(value) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value || 0));
+  return new Intl.NumberFormat(APP_LOCALE, {
+    style: 'currency',
+    currency: 'PKR',
+    currencyDisplay: 'symbol',
+  }).format(Number(value || 0)).replace('PKR', APP_CURRENCY);
 }
 
 export function classNames(...values) {
