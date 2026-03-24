@@ -260,24 +260,25 @@ class ScreeningService
                 $data['remarks']
             );
         }
+        if (!$stmt) {
+            throw new RuntimeException('screening_stmt_invalid_before_execute');
+        }
         try {
             if (!$stmt->execute()) {
-                $errorCode = (int) $stmt->errno;
-                $stmt->close();
+                $errorCode = (int)$stmt->errno;
                 if ($errorCode === 1062) {
                     throw new RuntimeException('screening_already_exists');
                 }
-                throw new RuntimeException('screening_save_failed');
+                throw new RuntimeException('screening_save_failed: ' . $stmt->error);
             }
+            $savedId = $targetId > 0 ? $targetId : $stmt->insert_id;
         } catch (Throwable $e) {
-            $errorCode = (int) $e->getCode();
-            $stmt->close();
-            if ($errorCode === 1062 || stripos($e->getMessage(), 'duplicate entry') !== false) {
-                throw new RuntimeException('screening_already_exists');
+            if (isset($stmt) && $stmt instanceof mysqli_stmt) {
+                @$stmt->close();
             }
             throw $e;
         }
-        $savedId = $targetId > 0 ? $targetId : $stmt->insert_id;
+
         $stmt->close();
 
         self::applyCollectionState($data['collection_id'], $data['result_status'], $data, $collection);

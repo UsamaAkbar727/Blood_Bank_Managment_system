@@ -351,7 +351,7 @@ export default function Screening() {
               <option value="">Select collection</option>
               {collections.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.collection_code} | {item.donor_name} | {item.blood_group} | {item.status}
+                  {item.collection_code} | {item.donor_name} | {item.blood_group}
                 </option>
               ))}
             </select>

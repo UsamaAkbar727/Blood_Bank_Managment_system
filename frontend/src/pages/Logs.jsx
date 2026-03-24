@@ -51,7 +51,7 @@ export default function Logs() {
   }, []);
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this log entry? This cannot be undone.')) {
+    if (!window.confirm) {
       return;
     }
 

@@ -212,6 +212,12 @@ function generateExcelContent(array $data, int $days): string
 function generateSqlDump(string $filePath): void
 {
     $dumpPath = BACKUP_MYSQLDUMP_PATH ?: 'mysqldump';
+
+    // Validate if the executable exists
+    if ($dumpPath !== 'mysqldump' && !file_exists($dumpPath)) {
+        throw new RuntimeException("mysqldump executable not found at: '$dumpPath'. Please check your backend/.env configuration.");
+    }
+
     $command = [
         $dumpPath,
         '--host=' . DB_HOST,
@@ -235,21 +241,30 @@ function generateSqlDump(string $filePath): void
         2 => ['pipe', 'w'],
     ];
 
-    $process = proc_open($command, $descriptorSpec, $pipes);
-    if (!is_resource($process)) {
-        throw new RuntimeException('Unable to start mysqldump process.');
-    }
+    try {
+        $process = proc_open($command, $descriptorSpec, $pipes);
+        if (!is_resource($process)) {
+            $error = error_get_last();
+            $msg = $error['message'] ?? 'Check system PATH and permissions.';
+            throw new RuntimeException("Export Error: Unable to start mysqldump process. ($msg)");
+        }
 
-    fclose($pipes[0]);
-    $stderr = stream_get_contents($pipes[2]);
-    fclose($pipes[2]);
+        fclose($pipes[0]);
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[2]);
 
-    $exitCode = proc_close($process);
-    if ($exitCode !== 0) {
-        throw new RuntimeException('mysqldump failed: ' . trim($stderr));
-    }
+        $exitCode = proc_close($process);
+        if ($exitCode !== 0) {
+            throw new RuntimeException('mysqldump failed: ' . trim($stderr));
+        }
 
-    if (!is_file($filePath) || filesize($filePath) === 0) {
-        throw new RuntimeException('mysqldump did not produce a valid SQL file.');
+        if (!is_file($filePath) || filesize($filePath) === 0) {
+            throw new RuntimeException('mysqldump did not produce a valid SQL file.');
+        }
+    } catch (Throwable $e) {
+        if ($e instanceof RuntimeException) {
+            throw $e;
+        }
+        throw new RuntimeException('Export Error: ' . $e->getMessage());
     }
 }
