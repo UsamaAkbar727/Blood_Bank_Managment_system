@@ -296,8 +296,11 @@ CREATE TABLE IF NOT EXISTS notifications (
   title VARCHAR(120) NOT NULL,
   message TEXT NOT NULL,
   is_read BOOLEAN NOT NULL DEFAULT 0,
+  event_key VARCHAR(191) NULL,
+  snoozed_until DATETIME NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_notifications_user (user_id, is_read),
+  KEY idx_notifications_event (event_key, snoozed_until, is_read),
   CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

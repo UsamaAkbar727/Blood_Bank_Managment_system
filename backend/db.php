@@ -68,6 +68,25 @@ function ensureAppSchema(mysqli $conn): void
         }
     }
 
+    $hasNotifications = $conn->query("SHOW TABLES LIKE 'notifications'");
+    if ($hasNotifications && $hasNotifications->num_rows > 0) {
+        $notificationColumns = [
+            'event_key' => 'ALTER TABLE notifications ADD COLUMN event_key VARCHAR(191) NULL AFTER title',
+            'snoozed_until' => 'ALTER TABLE notifications ADD COLUMN snoozed_until DATETIME NULL AFTER is_read',
+        ];
+        foreach ($notificationColumns as $column => $sql) {
+            $hasColumn = $conn->query("SHOW COLUMNS FROM notifications LIKE '" . $conn->real_escape_string($column) . "'");
+            if ($hasColumn && $hasColumn->num_rows === 0) {
+                $conn->query($sql);
+            }
+        }
+
+        $hasEventIndex = $conn->query("SHOW INDEX FROM notifications WHERE Key_name = 'idx_notifications_event'");
+        if ($hasEventIndex && $hasEventIndex->num_rows === 0) {
+            $conn->query('CREATE INDEX idx_notifications_event ON notifications (event_key, snoozed_until, is_read)');
+        }
+    }
+
     $conn->query(
         "CREATE TABLE IF NOT EXISTS settings_expiry_rules (
             component ENUM('Whole Blood','PRBC','Platelets','FFP','Plasma','Cryo') NOT NULL PRIMARY KEY,
@@ -88,6 +107,23 @@ function ensureAppSchema(mysqli $conn): void
     );
 
     $conn->query(
+        "CREATE TABLE IF NOT EXISTS settings_backups (
+            id TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+            frequency ENUM('daily','weekly','monthly') NOT NULL DEFAULT 'daily',
+            scheduled_time TIME NOT NULL DEFAULT '00:00:00',
+            scheduled_day_of_week TINYINT UNSIGNED NOT NULL DEFAULT 1,
+            retention_days SMALLINT UNSIGNED NOT NULL DEFAULT 7,
+            auto_delete_local BOOLEAN NOT NULL DEFAULT 1,
+            drive_enabled BOOLEAN NOT NULL DEFAULT 0,
+            drive_folder_id VARCHAR(191) NULL,
+            drive_credentials_path VARCHAR(255) NULL,
+            drive_auth_url VARCHAR(512) NULL,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            last_run_at DATETIME NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
+    $conn->query(
         "INSERT INTO settings_expiry_rules (component, shelf_life_days, allow_manual_override) VALUES
             ('Whole Blood', 35, 1),
             ('PRBC', 42, 1),
@@ -98,5 +134,19 @@ function ensureAppSchema(mysqli $conn): void
         ON DUPLICATE KEY UPDATE
             shelf_life_days = VALUES(shelf_life_days),
             allow_manual_override = VALUES(allow_manual_override)"
+    );
+
+    $conn->query(
+        "INSERT INTO settings_backups (id, frequency, scheduled_time, scheduled_day_of_week, retention_days, auto_delete_local, drive_enabled, drive_folder_id, drive_credentials_path)
+         VALUES (1, 'daily', '00:00:00', 1, 7, 1, 0, NULL, NULL)
+         ON DUPLICATE KEY UPDATE
+            frequency = VALUES(frequency),
+            scheduled_time = VALUES(scheduled_time),
+            scheduled_day_of_week = VALUES(scheduled_day_of_week),
+            retention_days = VALUES(retention_days),
+            auto_delete_local = VALUES(auto_delete_local),
+            drive_enabled = VALUES(drive_enabled),
+            drive_folder_id = VALUES(drive_folder_id),
+            drive_credentials_path = VALUES(drive_credentials_path)"
     );
 }

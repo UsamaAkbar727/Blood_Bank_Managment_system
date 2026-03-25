@@ -37,19 +37,19 @@ class AlertService
         $created = [];
 
         $low = InventoryService::lowStock();
-        if ($low) {
-            $msg = 'Low stock: ' . implode(', ', array_map(fn($r) => $r['blood_group'] . ' ' . $r['component'] . ' (' . $r['units'] . ')', $low));
-            $created['low_stock'] = NotificationService::createSystem('warning', 'Low Stock Alert', $msg, 6);
-        } else {
-            $created['low_stock'] = false;
+        $created['low_stock'] = [];
+        foreach ($low as $row) {
+            $key = 'low_stock:' . $row['blood_group'] . ':' . $row['component'];
+            $msg = $row['blood_group'] . ' ' . $row['component'] . ' is low (' . $row['units'] . ' unit(s) available).';
+            $created['low_stock'][$key] = NotificationService::createSystem('warning', 'Low Stock Alert', $msg, $key, 24);
         }
 
         $expiring = InventoryService::expiringSoon($days);
-        if ($expiring) {
-            $msg = 'Expiry alert: ' . count($expiring) . ' unit(s) expire within ' . $days . ' day(s).';
-            $created['expiry'] = NotificationService::createSystem('warning', 'Expiry Alert', $msg, 6);
-        } else {
-            $created['expiry'] = false;
+        $created['expiry'] = [];
+        foreach ($expiring as $row) {
+            $key = 'expiry:' . $row['id'];
+            $msg = 'Unit ' . $row['collection_code'] . ' expires on ' . $row['expiry_date'] . '.';
+            $created['expiry'][$key] = NotificationService::createSystem('warning', 'Expiry Alert', $msg, $key, 24);
         }
 
         return $created;

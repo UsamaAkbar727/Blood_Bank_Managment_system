@@ -3,13 +3,14 @@ require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/Permissions.php';
 require_once __DIR__ . '/LogService.php';
+require_once __DIR__ . '/BackupSettingsService.php';
 
 class BackupService
 {
     public static function list(int $days = 3): array
     {
         Permissions::allow('backups');
-        $stmt = db()->prepare('SELECT * FROM backup_logs WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) ORDER BY created_at DESC');
+        $stmt = db()->prepare('SELECT * FROM backup_logs WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY) ORDER BY created_at DESC LIMIT 3');
         $stmt->bind_param('i', $days);
         $stmt->execute();
         $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -37,7 +38,10 @@ class BackupService
 
     public static function run(bool $manual = false, string $format = 'excel'): array
     {
-        Permissions::allow('backups');
+        if (PHP_SAPI !== 'cli') {
+            Permissions::allow('backups');
+        }
+        $settings = BackupSettingsService::get();
         $timestamp = date('Ymd_His');
         $format = strtolower($format);
         $ext = $format === 'pdf' ? 'pdf' : 'xls';
@@ -66,6 +70,7 @@ class BackupService
         $message = 'ok';
 
         try {
+            self::pruneToLatestThree();
             $data = self::exportData();
             if ($format === 'pdf') {
                 self::writePdf($filePath, $data);
@@ -80,9 +85,9 @@ class BackupService
         $size = file_exists($filePath) ? filesize($filePath) : 0;
         $uploaded = false;
 
-        if ($status === 'success' && BACKUP_DRIVE_ENABLED) {
+        if ($status === 'success' && self::driveEnabled($settings)) {
             try {
-                $uploaded = self::uploadToDrive($filePath, $fileName);
+                $uploaded = self::uploadToDrive($filePath, $fileName, $settings);
             } catch (Throwable $e) {
                 $uploaded = false;
                 $message = 'drive_upload_failed';
@@ -90,7 +95,7 @@ class BackupService
         }
 
         self::log($fileName, $filePath, $size, $status, $message, $uploaded);
-        self::pruneOld();
+        self::pruneOld($settings);
 
         if (class_exists('LogService')) {
             LogService::write(null, 'backup', 'system', null, $status);
@@ -114,9 +119,29 @@ class BackupService
         $stmt->close();
     }
 
-    private static function pruneOld(): void
+    public static function runScheduled(): array
     {
-        $keepDate = date('Y-m-d H:i:s', strtotime('-' . BACKUP_RETENTION_DAYS . ' days'));
+        $settings = BackupSettingsService::get();
+        if (!BackupSettingsService::isDue($settings)) {
+            return ['status' => 'skipped', 'message' => 'not_due', 'settings' => $settings];
+        }
+
+        $result = self::run(false, 'excel');
+        $stmt = db()->prepare('UPDATE settings_backups SET last_run_at = NOW() WHERE id = 1');
+        if ($stmt) {
+            $stmt->execute();
+            $stmt->close();
+        }
+        return $result;
+    }
+
+    private static function pruneOld(array $settings): void
+    {
+        if (empty($settings['auto_delete_local'])) {
+            return;
+        }
+        $keepDays = max(1, (int)($settings['retention_days'] ?? 7));
+        $keepDate = date('Y-m-d H:i:s', strtotime('-' . $keepDays . ' days'));
         $stmt = db()->prepare('SELECT file_path FROM backup_logs WHERE created_at < ?');
         $stmt->bind_param('s', $keepDate);
         $stmt->execute();
@@ -131,6 +156,46 @@ class BackupService
         $stmt2->bind_param('s', $keepDate);
         $stmt2->execute();
         $stmt2->close();
+    }
+
+    private static function pruneToLatestThree(): void
+    {
+        $countRes = db()->query('SELECT COUNT(*) AS total FROM backup_logs');
+        $countRow = $countRes ? $countRes->fetch_assoc() : null;
+        $count = (int)($countRow['total'] ?? 0);
+
+        while ($count > 2) {
+            $stmt = db()->prepare('SELECT id, file_path, file_name FROM backup_logs ORDER BY created_at ASC, id ASC LIMIT 1');
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+
+            if (!$row) {
+                break;
+            }
+
+            $path = $row['file_path'] ?? '';
+            $fallback = '';
+            if (!empty($row['file_name'])) {
+                $fallback = realpath(__DIR__ . '/../..') . '/backups/' . $row['file_name'];
+            }
+
+            $deletePath = $path;
+            if (empty($deletePath) || !file_exists($deletePath)) {
+                $deletePath = $fallback;
+            }
+
+            if ($deletePath && file_exists($deletePath)) {
+                @unlink($deletePath);
+            }
+
+            $del = db()->prepare('DELETE FROM backup_logs WHERE id = ? LIMIT 1');
+            $del->bind_param('i', $row['id']);
+            $del->execute();
+            $del->close();
+
+            $count--;
+        }
     }
 
     private static function exportData(): array
@@ -234,12 +299,14 @@ class BackupService
     }
 
     // Google Drive upload using service account (requires BACKUP_DRIVE_ENABLED + service account JSON).
-    private static function uploadToDrive(string $filePath, string $fileName): bool
+    private static function uploadToDrive(string $filePath, string $fileName, array $settings): bool
     {
-        if (!BACKUP_DRIVE_ENABLED || !file_exists(BACKUP_SERVICE_ACCOUNT_JSON)) {
+        $credsPath = $settings['drive_credentials_path'] ?: BACKUP_SERVICE_ACCOUNT_JSON;
+        $folderId = $settings['drive_folder_id'] ?: BACKUP_DRIVE_FOLDER_ID;
+        if (!file_exists($credsPath)) {
             return false;
         }
-        $creds = json_decode(file_get_contents(BACKUP_SERVICE_ACCOUNT_JSON), true);
+        $creds = json_decode(file_get_contents($credsPath), true);
         if (!$creds || empty($creds['client_email']) || empty($creds['private_key'])) {
             return false;
         }
@@ -274,8 +341,8 @@ class BackupService
         $accessToken = $tokenData['access_token'];
 
         $meta = ['name' => $fileName];
-        if (BACKUP_DRIVE_FOLDER_ID && BACKUP_DRIVE_FOLDER_ID !== 'REPLACE_FOLDER_ID') {
-            $meta['parents'] = [BACKUP_DRIVE_FOLDER_ID];
+        if ($folderId && $folderId !== 'REPLACE_FOLDER_ID') {
+            $meta['parents'] = [$folderId];
         }
 
         $boundary = '-------' . md5((string)microtime(true));
@@ -316,5 +383,10 @@ class BackupService
         $resp = curl_exec($ch);
         curl_close($ch);
         return $resp ?: '';
+    }
+
+    private static function driveEnabled(array $settings): bool
+    {
+        return !empty($settings['drive_enabled']) || BACKUP_DRIVE_ENABLED;
     }
 }

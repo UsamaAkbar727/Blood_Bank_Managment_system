@@ -337,7 +337,7 @@ class ScreeningService
     public static function get(int $id): ?array
     {
         Permissions::allow('screening');
-        $stmt = db()->prepare('SELECT st.*, c.collection_code, c.collection_date, c.status AS collection_status, d.full_name AS donor_name, d.blood_group AS donor_blood FROM screening_tests st JOIN collections c ON c.id = st.collection_id JOIN donors d ON d.id = c.donor_id WHERE st.id=? LIMIT 1');
+        $stmt = db()->prepare('SELECT st.*, c.collection_code, c.collection_date, c.status AS collection_status, c.volume_ml, d.full_name AS donor_name, d.blood_group AS donor_blood FROM screening_tests st JOIN collections c ON c.id = st.collection_id JOIN donors d ON d.id = c.donor_id WHERE st.id=? LIMIT 1');
         $stmt->bind_param('i', $id);
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
@@ -348,7 +348,7 @@ class ScreeningService
     public static function getByCollection(int $collectionId): ?array
     {
         Permissions::allow('screening');
-        $stmt = db()->prepare('SELECT st.*, c.collection_code, c.collection_date, c.status AS collection_status, d.full_name AS donor_name, d.blood_group AS donor_blood FROM screening_tests st JOIN collections c ON c.id = st.collection_id JOIN donors d ON d.id = c.donor_id WHERE st.collection_id=? LIMIT 1');
+        $stmt = db()->prepare('SELECT st.*, c.collection_code, c.collection_date, c.status AS collection_status, c.volume_ml, d.full_name AS donor_name, d.blood_group AS donor_blood FROM screening_tests st JOIN collections c ON c.id = st.collection_id JOIN donors d ON d.id = c.donor_id WHERE st.collection_id=? LIMIT 1');
         $stmt->bind_param('i', $collectionId);
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
@@ -360,7 +360,7 @@ class ScreeningService
     {
         Permissions::allow('screening');
         $like = '%' . $search . '%';
-        $stmt = db()->prepare('SELECT st.*, c.collection_code, c.collection_date, c.status AS collection_status, d.full_name AS donor_name, d.blood_group AS donor_blood FROM screening_tests st JOIN collections c ON c.id = st.collection_id JOIN donors d ON d.id = c.donor_id WHERE c.collection_code LIKE ? OR d.full_name LIKE ? OR st.result_status LIKE ? ORDER BY st.test_date DESC LIMIT 200');
+        $stmt = db()->prepare('SELECT st.*, c.collection_code, c.collection_date, c.status AS collection_status, c.volume_ml, d.full_name AS donor_name, d.blood_group AS donor_blood FROM screening_tests st JOIN collections c ON c.id = st.collection_id JOIN donors d ON d.id = c.donor_id WHERE c.collection_code LIKE ? OR d.full_name LIKE ? OR st.result_status LIKE ? ORDER BY st.test_date DESC LIMIT 200');
         $stmt->bind_param('sss', $like, $like, $like);
         $stmt->execute();
         $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -372,7 +372,7 @@ class ScreeningService
     {
         Permissions::allow('screening');
         $like = '%' . $search . '%';
-        $stmt = db()->prepare('SELECT c.id, c.collection_code, c.collection_date, c.status, c.volume_ml, d.full_name AS donor_name, d.blood_group FROM collections c JOIN donors d ON d.id = c.donor_id WHERE c.collection_code LIKE ? OR d.full_name LIKE ? OR d.blood_group LIKE ? ORDER BY c.collection_date DESC LIMIT 200');
+        $stmt = db()->prepare('SELECT c.id, c.collection_code, c.collection_date, c.status, c.volume_ml, d.full_name AS donor_name, d.blood_group FROM collections c JOIN donors d ON d.id = c.donor_id WHERE c.id NOT IN (SELECT collection_id FROM screening_tests) AND (c.collection_code LIKE ? OR d.full_name LIKE ? OR d.blood_group LIKE ?) ORDER BY c.collection_date DESC LIMIT 200');
         $stmt->bind_param('sss', $like, $like, $like);
         $stmt->execute();
         $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
