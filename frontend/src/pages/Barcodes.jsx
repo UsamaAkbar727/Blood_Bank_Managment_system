@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import JsBarcode from 'jsbarcode';
 import Modal from '../components/Modal';
+import { request } from '../lib/api';
 
-const blankBag = { code: 'BAG-000', blood: '', component: 'Whole Blood', expiry: '', volume: '' };
+const blankBag = { code: '', blood: '', component: 'Whole Blood', expiry: '', volume: '' };
 
 const PreviewContent = ({ data, barcodeRef }) => {
   if (!data) return null;
@@ -61,7 +62,26 @@ export default function Barcodes() {
   const [selectedLabelId, setSelectedLabelId] = useState(() => {
     return localStorage.getItem('bbms_selected_label_id') || null;
   });
+  const [loadingCode, setLoadingCode] = useState(false);
   const barcodeRef = useRef(null);
+
+  const handleNewUnit = async () => {
+    setLoadingCode(true);
+    try {
+      const res = await request('/api/collections/index.php?action=generate-code');
+      const nextCode = res?.data?.code || 'BAG-' + Date.now().toString().slice(-4);
+      setBag({ ...blankBag, code: nextCode });
+      setEditIndex(null);
+      setOpen(true);
+    } catch (err) {
+      console.error('Failed to fetch code:', err);
+      setBag({ ...blankBag, code: 'BAG-' + Date.now().toString().slice(-4) });
+      setEditIndex(null);
+      setOpen(true);
+    } finally {
+      setLoadingCode(false);
+    }
+  };
 
   const selectedLabel = labels.find((label) => label.id === selectedLabelId);
 
@@ -155,22 +175,25 @@ export default function Barcodes() {
               <svg className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
               Label Designer
             </h3>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button
-                className="btn-soft h-9 px-3 text-xs font-semibold"
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-95 disabled:opacity-50 disabled:pointer-events-none shadow-sm ${!selectedLabel ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                 onClick={() => printLabel(selectedLabel)}
                 disabled={!selectedLabel}
               >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                 Print
               </button>
               <button
-                className="btn-primary h-9 px-3 text-xs font-semibold"
-                onClick={() => {
-                  setBag(blankBag);
-                  setEditIndex(null);
-                  setOpen(true);
-                }}
+                className={`flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 text-sm font-bold text-white transition-all hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/20 active:scale-95 disabled:opacity-70 disabled:pointer-events-none shadow-md ${loadingCode ? 'cursor-wait' : 'cursor-pointer'}`}
+                onClick={handleNewUnit}
+                disabled={loadingCode}
               >
+                {loadingCode ? (
+                   <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                ) : (
+                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+                )}
                 New Unit
               </button>
             </div>
@@ -277,7 +300,7 @@ export default function Barcodes() {
           className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
-            const barcodeVal = bag.code?.trim() || 'BAG-000';
+            const barcodeVal = bag.code?.trim() || '';
             
             setLabels((current) => {
               if (editIndex !== null && editIndex >= 0 && editIndex < current.length) {

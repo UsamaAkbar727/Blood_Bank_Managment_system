@@ -127,13 +127,14 @@ class ScreeningService
         } else {
             // INSERT new inventory record
             $stmt = db()->prepare('INSERT INTO inventory (collection_id, component, blood_group, volume_ml, units_available, storage_location, expiry_date, status) VALUES (?,?,?,?,?,?,?,?)');
+            $units = 1;
             $stmt->bind_param(
                 'isssisss',
                 $collection['id'],
                 $component,
                 $screen['blood_group_confirmed'],
                 $collection['volume_ml'],
-                $units = 1,
+                $units,
                 $location,
                 $expiry,
                 $status
@@ -219,6 +220,20 @@ class ScreeningService
 
         $data['result_status'] = self::computeResultStatus($data);
 
+        // Extract parameters to local variables to ensure they are passed by reference
+        $colId = (int)$data['collection_id'];
+        $testedBy = $data['tested_by'];
+        $testDate = $data['test_date'];
+        $hbsag = (int)$data['hbsag'];
+        $hcv = (int)$data['hcv'];
+        $hiv = (int)$data['hiv'];
+        $malaria = (int)$data['malaria'];
+        $syphilis = (int)$data['syphilis'];
+        $bgConfirmed = $data['blood_group_confirmed'];
+        $hbLevel = $data['hemoglobin_level'];
+        $resStatus = $data['result_status'];
+        $remarks = $data['remarks'];
+
         if ($targetId > 0) {
             $stmt = db()->prepare('UPDATE screening_tests SET tested_by=?, test_date=?, hbsag=?, hcv=?, hiv=?, malaria=?, syphilis=?, blood_group_confirmed=?, hemoglobin_level=?, result_status=?, remarks=? WHERE id=?');
             if (!$stmt) {
@@ -226,17 +241,17 @@ class ScreeningService
             }
             $stmt->bind_param(
                 'isiiiiisdssi',
-                $data['tested_by'],
-                $data['test_date'],
-                $data['hbsag'],
-                $data['hcv'],
-                $data['hiv'],
-                $data['malaria'],
-                $data['syphilis'],
-                $data['blood_group_confirmed'],
-                $data['hemoglobin_level'],
-                $data['result_status'],
-                $data['remarks'],
+                $testedBy,
+                $testDate,
+                $hbsag,
+                $hcv,
+                $hiv,
+                $malaria,
+                $syphilis,
+                $bgConfirmed,
+                $hbLevel,
+                $resStatus,
+                $remarks,
                 $targetId
             );
         } else {
@@ -246,18 +261,18 @@ class ScreeningService
             }
             $stmt->bind_param(
                 'iisiiiiisdss',
-                $data['collection_id'],
-                $data['tested_by'],
-                $data['test_date'],
-                $data['hbsag'],
-                $data['hcv'],
-                $data['hiv'],
-                $data['malaria'],
-                $data['syphilis'],
-                $data['blood_group_confirmed'],
-                $data['hemoglobin_level'],
-                $data['result_status'],
-                $data['remarks']
+                $colId,
+                $testedBy,
+                $testDate,
+                $hbsag,
+                $hcv,
+                $hiv,
+                $malaria,
+                $syphilis,
+                $bgConfirmed,
+                $hbLevel,
+                $resStatus,
+                $remarks
             );
         }
         if (!$stmt) {

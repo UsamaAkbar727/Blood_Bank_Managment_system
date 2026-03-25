@@ -21,7 +21,7 @@ class CollectionService
         if ($donorId <= 0 || $collectionDate === '' || $volume <= 0) {
             throw new InvalidArgumentException('missing_fields');
         }
-        $code = $input['collection_code'] ?? ('COL-' . strtoupper(bin2hex(random_bytes(3))));
+        $code = $input['collection_code'] ?? self::generateUniqueCode();
         $expiryRule = SettingsService::ruleForComponent('Whole Blood');
         $allowManualOverride = $expiryRule['allow_manual_override'];
         if ($expiryDateOverride !== '' && !$allowManualOverride) {
@@ -60,7 +60,8 @@ class CollectionService
     private static function touchLastDonation(int $donorId, string $date): void
     {
         $stmt = db()->prepare('UPDATE donors SET last_donation_at = ? WHERE id = ?');
-        $stmt->bind_param('si', substr($date, 0, 10), $donorId);
+        $dateStr = substr($date, 0, 10);
+        $stmt->bind_param('si', $dateStr, $donorId);
         $stmt->execute();
         $stmt->close();
     }
@@ -197,5 +198,32 @@ class CollectionService
         $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $stmt->close();
         return $rows;
+    }
+
+    public static function generateUniqueCode(): string
+    {
+        Permissions::allow('collections');
+        $prefix = 'BAG-' . date('ym'); // e.g. BAG-2403
+        $attempts = 0;
+        
+        do {
+            $random = strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 4));
+            $code = "{$prefix}-{$random}";
+            
+            $stmt = db()->prepare('SELECT id FROM collections WHERE collection_code = ? LIMIT 1');
+            $stmt->bind_param('s', $code);
+            $stmt->execute();
+            $exists = $stmt->get_result()->fetch_row();
+            $stmt->close();
+            
+            $attempts++;
+            if ($attempts > 10) {
+                // Fallback to a longer code if collisions persist
+                $code = "{$prefix}-" . strtoupper(bin2hex(random_bytes(4)));
+                break;
+            }
+        } while ($exists);
+        
+        return $code;
     }
 }

@@ -95,6 +95,7 @@ export default function Issuance() {
       setUnits(data);
     } catch (err) {
       console.error('Failed to load units', err);
+      setToast({ message: 'Error loading compatible units. Please check your connection.', type: 'error' });
       setUnits([]);
     } finally {
       setLoadingUnits(false);
@@ -112,6 +113,7 @@ export default function Issuance() {
       setIssuanceHistory(res.data || []);
     } catch (err) {
       console.error('Failed to load issuance history', err);
+      setToast({ message: 'Error loading issuance history.', type: 'error' });
       setIssuanceHistory([]);
     } finally {
       setLoadingHistory(false);
@@ -123,6 +125,14 @@ export default function Issuance() {
   }, []);
 
   useEffect(() => {
+    if (!selectedPatient) {
+      setUnits([]);
+      setIssuanceHistory([]);
+      return;
+    }
+    loadUnits(selectedPatient);
+    loadHistory(selectedPatient);
+
     const id = setInterval(() => {
       loadUnits(selectedPatient);
       loadHistory(selectedPatient);
@@ -206,8 +216,6 @@ export default function Issuance() {
               const selectedId = e.target.value;
               const p = patients.find((x) => String(x.id) === String(selectedId));
               setSelectedPatient(p || null);
-              loadUnits(p || null);
-              loadHistory(p || null);
             }}
           >
             <option value="">Select patient…</option>

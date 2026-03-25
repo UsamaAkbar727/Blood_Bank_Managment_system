@@ -8,7 +8,9 @@ $method = $_SERVER['REQUEST_METHOD'];
 try {
     switch ($method) {
         case 'GET':
-            if (isset($_GET['id'])) {
+            if (isset($_GET['action']) && $_GET['action'] === 'generate-code') {
+                echo json_encode(['data' => ['code' => CollectionService::generateUniqueCode()]]);
+            } elseif (isset($_GET['id'])) {
                 $row = CollectionService::get((int)$_GET['id']);
                 echo json_encode(['data' => $row]);
             } else {
