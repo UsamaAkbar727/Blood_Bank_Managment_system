@@ -116,7 +116,7 @@ export default function Screening() {
     if (value) {
       window.setTimeout(() => {
         if (document.activeElement === event.target) {
-          event.target.blur();
+          // event.target.blur();
         }
       }, 120);
     }
@@ -140,6 +140,23 @@ export default function Screening() {
         hcv: Boolean(Number(row.hcv)),
         malaria: Boolean(Number(row.malaria)),
         syphilis: Boolean(Number(row.syphilis)),
+      });
+      setCollections((prev) => {
+        if (!prev.find((c) => String(c.id) === String(row.collection_id))) {
+          return [
+            ...prev,
+            {
+              id: row.collection_id,
+              collection_code: row.collection_code,
+              collection_date: row.collection_date,
+              status: row.collection_status,
+              volume_ml: row.volume_ml || 'Unknown',
+              donor_name: row.donor_name,
+              blood_group: row.donor_blood,
+            },
+          ];
+        }
+        return prev;
       });
       setError('');
       setOpen(true);

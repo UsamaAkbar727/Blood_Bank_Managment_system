@@ -216,22 +216,7 @@ export default function Collections() {
       hasPickedTime.current = true;
     }
 
-    if (nextDate && nextTime && hasPickedDate.current && hasPickedTime.current) {
-      if (dateTimeBlurTimer.current) {
-        clearTimeout(dateTimeBlurTimer.current);
-      }
-      dateTimeBlurTimer.current = window.setTimeout(() => {
-        if (document.activeElement === event.target) {
-          event.target.blur();
-        }
-        if (dateTimeCloseSink.current) {
-          dateTimeCloseSink.current.focus();
-        }
-        hasPickedDate.current = false;
-        hasPickedTime.current = false;
-        dateTimeBlurTimer.current = null;
-      }, 0);
-    }
+
   };
 
   const computedExpiry = addDays(form.collection_date, expiryRule.shelf_life_days);

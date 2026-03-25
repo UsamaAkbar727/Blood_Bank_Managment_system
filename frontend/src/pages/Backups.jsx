@@ -9,29 +9,36 @@ function formatSize(bytes) {
   return `${(bytes / 1024 ** i).toFixed(1)} ${units[i]}`;
 }
 
-
 export default function Backups() {
   const [rows, setRows] = useState([]);
   const [message, setMessage] = useState('');
   const [running, setRunning] = useState(false);
-  const [format, setFormat] = useState('excel');
-  const [useDrive, setUseDrive] = useState(false);
-  const [driveConnected, setDriveConnected] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'info' });
+  const [driveStatus, setDriveStatus] = useState(null);
+  const [driveLoading, setDriveLoading] = useState(true);
+  const [driveError, setDriveError] = useState('');
 
   const load = async () => {
     const res = await request('/api/backups/index.php');
     setRows(res.data || []);
-    if (res.drive_connected !== undefined) {
-      setDriveConnected(res.drive_connected);
-      if (res.drive_connected && !rows.length) {
-        setUseDrive(true);
-      }
+  };
+
+  const loadDriveStatus = async () => {
+    setDriveLoading(true);
+    setDriveError('');
+    try {
+      const res = await request('/api/reports/drive-status.php');
+      setDriveStatus(res);
+    } catch (err) {
+      setDriveError(err.message || 'Failed to load Google Drive status.');
+    } finally {
+      setDriveLoading(false);
     }
   };
 
   useEffect(() => {
     load();
+    loadDriveStatus();
     const id = setInterval(load, 15000);
     return () => clearInterval(id);
   }, []);
@@ -40,7 +47,7 @@ export default function Backups() {
     setRunning(true);
     setMessage('Running backup...');
     try {
-      const res = await request(`/api/backups/index.php?format=${encodeURIComponent(format)}&drive=${useDrive}`, { method: 'POST' });
+      const res = await request('/api/backups/index.php', { method: 'POST' });
       setMessage(res.data?.status === 'success' ? 'Backup completed successfully.' : 'Backup failed. Please try again.');
       setToast({ message: res.data?.status === 'success' ? 'Backup completed successfully.' : 'Backup failed. Please try again.', type: res.data?.status === 'success' ? 'success' : 'error' });
       load();
@@ -52,53 +59,68 @@ export default function Backups() {
     }
   };
 
+  const driveConnected = Boolean(driveStatus?.status?.authenticated && driveStatus?.status?.token_valid && driveStatus?.status?.folder_id_configured);
+
+  const connectDrive = () => {
+    const authUrl = driveStatus?.auth_url;
+    if (authUrl) {
+      window.open(authUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    setToast({
+      message: driveConnected ? 'Google Drive is already connected.' : 'Google Drive is not ready yet. Check Settings for setup details.',
+      type: driveConnected ? 'success' : 'warning',
+    });
+  };
+
   return (
     <div className="space-y-3">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
-      <div className="card p-4 flex items-center justify-between">
+      <div className="card p-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h3 className="font-semibold text-slate-900">Automatic Daily Backups</h3>
-          <p className="text-sm text-slate-500">Retention: last 3 days. Exports PDF/Excel; optional Google Drive upload.</p>
+          <p className="text-sm text-slate-500">Retention: Only the latest 3 backups are kept.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <label
+        <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+          <button
+            type="button"
+            onClick={connectDrive}
+            disabled={driveLoading}
             className={classNames(
-              'flex items-center gap-1.5 text-sm cursor-pointer whitespace-nowrap',
-              !driveConnected && 'opacity-50 cursor-not-allowed',
+              'inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors',
+              driveConnected
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
+              driveLoading && 'cursor-not-allowed opacity-60',
             )}
-            title={!driveConnected ? 'Google Drive is not configured on the server.' : 'Backup to Google Drive'}
+            title={driveConnected ? 'Google Drive is connected' : 'Connect Google Drive'}
           >
-            <input
-              type="checkbox"
-              checked={useDrive && driveConnected}
-              disabled={!driveConnected}
-              onChange={(e) => setUseDrive(e.target.checked)}
-              className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 disabled:bg-slate-100 disabled:cursor-not-allowed"
-            />
-            <span className="text-slate-700 font-medium">Google Drive</span>
-          </label>
-          <select
-            className="border border-slate-200 rounded-lg px-3 py-2 text-sm"
-            value={format}
-            onChange={(e) => setFormat(e.target.value)}
-          >
-            <option value="excel">Excel</option>
-            <option value="pdf">PDF</option>
-          </select>
+            <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+              <path fill="#1A73E8" d="M12 3.2 4.3 16.5l2.4 4.3H19l2.7-4.8L14 3.2h-2z" />
+              <path fill="#34A853" d="M9.1 8.3h5.8l2.4 4.2h-5.8z" />
+              <path fill="#FBBC04" d="M4.3 16.5 6.7 12l2.4 4.3-2.4 4.3z" />
+            </svg>
+            <span>Connect Drive</span>
+            <span className={classNames('rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide', driveConnected ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600')}>
+              {driveConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </button>
           <button
             onClick={backupNow}
             disabled={running}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-60"
           >
-            {running ? 'Backing upâ€¦' : 'Backup Now'}
+            {running ? 'Backing up...' : 'Backup Now'}
           </button>
         </div>
       </div>
+      {driveError && <div className="text-sm text-red-600">{driveError}</div>}
 
       <div className="card p-4">
         <div className="flex items-center justify-between mb-2">
           <h4 className="font-semibold text-slate-900">Recent Backups</h4>
-          <span className="text-xs text-slate-500">Most recent first</span>
+          <span className="text-xs text-slate-500">Most recent first, max 3 rows</span>
         </div>
         <div className="table-responsive overflow-x-auto">
           <table className="min-w-full text-sm">

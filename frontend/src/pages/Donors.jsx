@@ -333,7 +333,6 @@ export default function Donors() {
                 value={form.date_of_birth}
                 onChange={(e) => {
                   setForm({ ...form, date_of_birth: e.target.value });
-                  e.target.blur();
                 }}
                 required
               />

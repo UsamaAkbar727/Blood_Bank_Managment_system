@@ -5,9 +5,6 @@ import { request } from '../lib/api';
 export default function Reports() {
   const [days, setDays] = useState(30);
   const [data, setData] = useState(null);
-  const [exporting, setExporting] = useState(false);
-  const [driveLink, setDriveLink] = useState(null);
-  const [exportError, setExportError] = useState('');
 
   const load = useCallback(async (d = days) => {
     const res = await request(`/api/reports/index.php?days=${d}`);
@@ -35,33 +32,11 @@ export default function Reports() {
   const screen = useMemo(() => data?.screening_results || [], [data]);
   const inventory = useMemo(() => data?.inventory_snapshot || [], [data]);
 
-  const exportReport = async (format) => {
-    setExporting(true);
-    setExportError('');
-    setDriveLink(null);
-    try {
-      const payload = { format, days };
-      const res = await request('/api/reports/drive-export.php', { method: 'POST', body: payload });
-      
-      if (res.data?.url) {
-        setDriveLink({
-          name: res.data.name,
-          url: res.data.url,
-          createdTime: res.data.createdTime,
-        });
-      }
-    } catch (err) {
-      setExportError(err.message || 'Failed to back up database to Google Drive');
-    } finally {
-      setExporting(false);
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-xl font-semibold text-slate-900">Reporting Dashboard</h2>
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+        <div className="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
           <select
             value={days}
             onChange={(e) => setDays(Number(e.target.value))}
@@ -72,13 +47,6 @@ export default function Reports() {
             <option value={90}>Last 90 days</option>
           </select>
           <button
-            disabled={exporting}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm disabled:bg-slate-300 disabled:cursor-not-allowed flex items-center gap-2 w-full sm:w-auto justify-center"
-            onClick={() => exportReport('sql')}
-          >
-            {exporting ? '⏳ Uploading...' : '☁️ Backup in Drive'}
-          </button>
-          <button
             className="border border-slate-200 px-3 py-2 rounded-lg text-sm w-full sm:w-auto"
             onClick={() => window.print()}
           >
@@ -86,32 +54,6 @@ export default function Reports() {
           </button>
         </div>
       </div>
-
-      {exportError && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-          <strong>Export Error:</strong> {exportError}
-        </div>
-      )}
-
-      {driveLink && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
-            <div>
-              <strong>✓ Backup saved to Google Drive!</strong>
-              <p className="text-sm mt-1">File: <code className="bg-white px-2 py-1 rounded">{driveLink.name}</code></p>
-              <p className="text-xs mt-2">Created: {new Date(driveLink.createdTime).toLocaleString()}</p>
-            </div>
-            <a
-              href={driveLink.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded text-sm whitespace-nowrap"
-            >
-              Open in Drive →
-            </a>
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <div className="card p-4 h-full">

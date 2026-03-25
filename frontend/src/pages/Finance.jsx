@@ -269,7 +269,7 @@ export default function Finance({ section = 'pricing' }) {
                 value={priceForm.effective_from}
                 onChange={(e) => {
                   setPriceForm({ ...priceForm, effective_from: e.target.value });
-                  e.target.blur();
+                  // e.target.blur();
                 }}
               />
             </div>
@@ -342,7 +342,7 @@ export default function Finance({ section = 'pricing' }) {
               value={expenseForm.incurred_on}
               onChange={(e) => {
                 setExpenseForm({ ...expenseForm, incurred_on: e.target.value });
-                e.target.blur();
+                // e.target.blur();
               }}
             />
           </div>
