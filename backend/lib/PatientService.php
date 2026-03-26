@@ -5,32 +5,43 @@ class PatientService
 {
     private static function sanitize(array $input): array
     {
-        $code = trim($input['patient_code'] ?? '');
-        $fullName = trim($input['full_name'] ?? '');
+        $name = trim($input['full_name'] ?? $input['name'] ?? '');
+        $patientCode = trim($input['patient_code'] ?? '');
         $gender = $input['gender'] ?? '';
-        $dob = $input['date_of_birth'] ?? null;
         $blood = $input['blood_group'] ?? '';
-        $diagnosis = $input['diagnosis'] ?? null;
-        $hospital = $input['hospital_name'] ?? null;
+        $age = isset($input['age']) && $input['age'] !== '' ? (int)$input['age'] : null;
+        $contact = trim($input['contact'] ?? $input['phone'] ?? '');
+        $hospitalId = isset($input['hospital_id']) && $input['hospital_id'] !== '' ? (int)$input['hospital_id'] : null;
+        $hospitalName = trim($input['hospital_name'] ?? '');
+        $wardName = trim($input['ward_name'] ?? '');
+        $location = $hospitalName !== '' ? $hospitalName : $wardName;
         $status = $input['status'] ?? 'active';
+        $medicalHistory = $input['medical_history'] ?? ($input['diagnosis'] ?? null);
 
-        if ($fullName === '' || $blood === '' || $gender === '') {
+        if ($name === '' || $blood === '' || $gender === '') {
             throw new InvalidArgumentException('missing_fields');
         }
 
-        if ($code === '') {
-            $code = 'PAT-' . strtoupper(bin2hex(random_bytes(3)));
+        if ($patientCode === '') {
+            $patientCode = 'PAT-' . strtoupper(bin2hex(random_bytes(3)));
+        }
+
+        $dateOfBirth = $input['date_of_birth'] ?? null;
+        if (($dateOfBirth === null || $dateOfBirth === '') && $age !== null && $age > 0) {
+            $dateOfBirth = (new DateTimeImmutable('today'))->sub(new DateInterval('P' . $age . 'Y'))->format('Y-m-d');
         }
 
         return [
-            'patient_code' => $code,
-            'full_name' => $fullName,
+            'patient_code' => $patientCode,
+            'full_name' => $name,
             'gender' => $gender,
-            'date_of_birth' => $dob,
+            'date_of_birth' => $dateOfBirth,
+            'age' => $age,
             'blood_group' => $blood,
-            'diagnosis' => $diagnosis,
-            'attending_doctor_id' => isset($input['attending_doctor_id']) ? (int)$input['attending_doctor_id'] : null,
-            'hospital_name' => $hospital,
+            'contact' => $contact !== '' ? $contact : null,
+            'hospital_id' => $hospitalId,
+            'hospital_name' => $location !== '' ? $location : null,
+            'medical_history' => $medicalHistory,
             'status' => $status,
         ];
     }
@@ -39,17 +50,19 @@ class PatientService
     {
         Permissions::allow('patients');
         $data = self::sanitize($input);
-        $stmt = db()->prepare('INSERT INTO patients (patient_code, full_name, gender, date_of_birth, blood_group, diagnosis, attending_doctor_id, hospital_name, status) VALUES (?,?,?,?,?,?,?,?,?)');
+        $stmt = db()->prepare('INSERT INTO patients (patient_code, full_name, gender, date_of_birth, age, blood_group, contact, hospital_id, hospital_name, medical_history, status) VALUES (?,?,?,?,?,?,?,?,?,?,?)');
         $stmt->bind_param(
-            'ssssssiss',
+            'ssssississs',
             $data['patient_code'],
             $data['full_name'],
             $data['gender'],
             $data['date_of_birth'],
+            $data['age'],
             $data['blood_group'],
-            $data['diagnosis'],
-            $data['attending_doctor_id'],
+            $data['contact'],
+            $data['hospital_id'],
             $data['hospital_name'],
+            $data['medical_history'],
             $data['status']
         );
         if (!$stmt->execute()) {
@@ -66,17 +79,19 @@ class PatientService
     {
         Permissions::allow('patients');
         $data = self::sanitize($input);
-        $stmt = db()->prepare('UPDATE patients SET patient_code=?, full_name=?, gender=?, date_of_birth=?, blood_group=?, diagnosis=?, attending_doctor_id=?, hospital_name=?, status=? WHERE id=?');
+        $stmt = db()->prepare('UPDATE patients SET patient_code=?, full_name=?, gender=?, date_of_birth=?, age=?, blood_group=?, contact=?, hospital_id=?, hospital_name=?, medical_history=?, status=? WHERE id=?');
         $stmt->bind_param(
-            'ssssssissi',
+            'ssssississsi',
             $data['patient_code'],
             $data['full_name'],
             $data['gender'],
             $data['date_of_birth'],
+            $data['age'],
             $data['blood_group'],
-            $data['diagnosis'],
-            $data['attending_doctor_id'],
+            $data['contact'],
+            $data['hospital_id'],
             $data['hospital_name'],
+            $data['medical_history'],
             $data['status'],
             $id
         );
@@ -115,8 +130,32 @@ class PatientService
     {
         Permissions::allow('patients');
         $like = '%' . $search . '%';
-        $stmt = db()->prepare('SELECT * FROM patients WHERE full_name LIKE ? OR patient_code LIKE ? OR blood_group LIKE ? ORDER BY created_at DESC LIMIT 200');
-        $stmt->bind_param('sss', $like, $like, $like);
+        $sql = 'SELECT p.*, p.full_name AS name, p.contact AS phone, p.hospital_name AS ward_name, 
+                       TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) AS computed_age
+                FROM patients p
+                WHERE p.full_name LIKE ? OR p.patient_code LIKE ? OR p.blood_group LIKE ? OR p.contact LIKE ? OR p.hospital_name LIKE ?
+                ORDER BY p.created_at DESC LIMIT 200';
+        $stmt = db()->prepare($sql);
+        $stmt->bind_param('sssss', $like, $like, $like, $like, $like);
+        $stmt->execute();
+        $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt->close();
+        return $rows;
+    }
+
+    public static function history(int $patientId): array
+    {
+        Permissions::allow('patients');
+        $sql = 'SELECT bi.id, bi.issue_date, bi.units_issued, bi.status, bi.crossmatch_result, bi.remarks,
+                       c.collection_code, i.component, i.blood_group, i.expiry_date, i.storage_location
+                FROM blood_issuance bi
+                JOIN inventory i ON i.id = bi.inventory_id
+                LEFT JOIN collections c ON c.id = i.collection_id
+                WHERE bi.patient_id = ?
+                ORDER BY bi.issue_date DESC
+                LIMIT 200';
+        $stmt = db()->prepare($sql);
+        $stmt->bind_param('i', $patientId);
         $stmt->execute();
         $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $stmt->close();

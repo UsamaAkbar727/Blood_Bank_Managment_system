@@ -44,6 +44,20 @@ const modules = [
     ),
   },
   {
+    key: 'patients',
+    label: 'Patients',
+    to: '/patients',
+    icon: (
+      <Icon>
+        <path d="M12 20v-3" />
+        <path d="M8 9a4 4 0 1 1 8 0c0 2.2-1.8 4-4 4s-4-1.8-4-4Z" />
+        <path d="M5 20c.8-3 3.2-5 7-5s6.2 2 7 5" />
+        <path d="M19 9h2" />
+        <path d="M20 8v2" />
+      </Icon>
+    ),
+  },
+  {
     key: 'collections',
     label: 'Collections',
     to: '/collections',

@@ -149,4 +149,25 @@ function ensureAppSchema(mysqli $conn): void
             drive_folder_id = VALUES(drive_folder_id),
             drive_credentials_path = VALUES(drive_credentials_path)"
     );
+
+    $hasPatients = $conn->query("SHOW TABLES LIKE 'patients'");
+    if ($hasPatients && $hasPatients->num_rows > 0) {
+        $patientColumns = [
+            'age' => 'ALTER TABLE patients ADD COLUMN age SMALLINT UNSIGNED NULL AFTER date_of_birth',
+            'contact' => 'ALTER TABLE patients ADD COLUMN contact VARCHAR(30) NULL AFTER blood_group',
+            'hospital_id' => 'ALTER TABLE patients ADD COLUMN hospital_id INT UNSIGNED NULL AFTER contact',
+            'hospital_name' => 'ALTER TABLE patients ADD COLUMN hospital_name VARCHAR(150) NULL AFTER hospital_id',
+            'medical_history' => 'ALTER TABLE patients ADD COLUMN medical_history VARCHAR(255) NULL AFTER hospital_name',
+        ];
+        foreach ($patientColumns as $column => $sql) {
+            $hasColumn = $conn->query("SHOW COLUMNS FROM patients LIKE '" . $conn->real_escape_string($column) . "'");
+            if ($hasColumn && $hasColumn->num_rows === 0) {
+                $conn->query($sql);
+            }
+        }
+        $hasPatientNameIndex = $conn->query("SHOW INDEX FROM patients WHERE Key_name = 'idx_patients_name'");
+        if ($hasPatientNameIndex && $hasPatientNameIndex->num_rows === 0) {
+            $conn->query('CREATE INDEX idx_patients_name ON patients (full_name)');
+        }
+    }
 }

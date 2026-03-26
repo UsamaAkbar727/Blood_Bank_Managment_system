@@ -193,17 +193,20 @@ CREATE TABLE IF NOT EXISTS patients (
   full_name VARCHAR(150) NOT NULL,
   gender ENUM('male','female','other') NOT NULL,
   date_of_birth DATE,
+  age SMALLINT UNSIGNED NULL,
   blood_group ENUM('A+','A-','B+','B-','AB+','AB-','O+','O-') NOT NULL,
+  contact VARCHAR(30),
   diagnosis VARCHAR(255),
-  attending_doctor_id INT UNSIGNED NULL,
+  hospital_id INT UNSIGNED NULL,
   hospital_name VARCHAR(150),
+  medical_history VARCHAR(255),
   status ENUM('active','discharged','deceased') NOT NULL DEFAULT 'active',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_patients_code (patient_code),
   KEY idx_patients_blood_group (blood_group),
   KEY idx_patients_status (status),
-  CONSTRAINT fk_patients_doctor FOREIGN KEY (attending_doctor_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
+  CONSTRAINT fk_patients_hospital FOREIGN KEY (hospital_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Blood issuance to patients

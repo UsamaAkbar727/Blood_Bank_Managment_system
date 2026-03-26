@@ -45,6 +45,7 @@ export default function Screening() {
   const [error, setError] = useState('');
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const isDiseasePanelDisabled = form.result_status !== 'rejected';
 
   const load = useCallback(
@@ -178,6 +179,7 @@ export default function Screening() {
   const onSubmit = async (event) => {
     event.preventDefault();
     setError('');
+    setIsSubmitting(true);
     const payload = {
       collection_id: Number(form.collection_id),
       test_date: form.test_date.replace('T', ' '),
@@ -204,7 +206,16 @@ export default function Screening() {
       load();
     } catch (err) {
       setError(err.message || 'Failed to save screening record.');
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const handleModalClose = () => {
+    setOpen(false);
+    setForm(blankForm);
+    setError('');
+    setIsSubmitting(false);
   };
 
   return (
@@ -247,13 +258,7 @@ export default function Screening() {
             className="w-full md:w-80 border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
           />
           <button
-            disabled={collections.length === 0}
-            title={collections.length === 0 ? 'No pending collections available. Create a collection first.' : ''}
-            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-              collections.length === 0
-                ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }`}
+            className="px-4 py-2 rounded-lg text-sm transition-colors bg-blue-600 hover:bg-blue-700 text-white"
             onClick={openCreate}
           >
             Add Screening Record
@@ -330,11 +335,7 @@ export default function Screening() {
 
       <Modal
         open={open}
-        onClose={() => {
-          setOpen(false);
-          setForm(blankForm);
-          setError('');
-        }}
+        onClose={handleModalClose}
         title={form.id ? 'Edit Screening Record' : 'Add Screening Record'}
       >
         <form className="space-y-4" onSubmit={onSubmit}>
@@ -487,16 +488,16 @@ export default function Screening() {
             <button
               type="button"
               className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm"
-              onClick={() => {
-                setOpen(false);
-                setForm(blankForm);
-                setError('');
-              }}
+              onClick={handleModalClose}
             >
               Cancel
             </button>
-            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
-              {form.id ? 'Update' : 'Save'}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Saving...' : form.id ? 'Update' : 'Save'}
             </button>
           </div>
         </form>

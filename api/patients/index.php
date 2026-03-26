@@ -1,35 +1,27 @@
 <?php
 header('Content-Type: application/json');
-require_once __DIR__ . '/../../backend/lib/PatientService.php';
+require_once __DIR__ . '/../../backend/lib/PatientsController.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
 try {
     switch ($method) {
         case 'GET':
-            if (isset($_GET['id'])) {
-                echo json_encode(['data' => PatientService::get((int)$_GET['id'])]);
-            } else {
-                $q = $_GET['q'] ?? '';
-                echo json_encode(['data' => PatientService::list($q)]);
-            }
+            echo json_encode(PatientsController::index($_GET));
             break;
         case 'POST':
             $payload = json_decode(file_get_contents('php://input'), true) ?? [];
-            $row = PatientService::create($payload);
-            echo json_encode(['data' => $row]);
+            echo json_encode(PatientsController::store($payload));
             break;
         case 'PUT':
         case 'PATCH':
             $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
             $payload = json_decode(file_get_contents('php://input'), true) ?? [];
-            $row = PatientService::update($id, $payload);
-            echo json_encode(['data' => $row]);
+            echo json_encode(PatientsController::update($id, $payload));
             break;
         case 'DELETE':
             $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-            $ok = PatientService::delete($id);
-            echo json_encode(['deleted' => $ok]);
+            echo json_encode(PatientsController::destroy($id));
             break;
         default:
             http_response_code(405);

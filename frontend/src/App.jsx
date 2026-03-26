@@ -5,6 +5,7 @@ import { useAuth } from './components/AuthProvider';
 import LoginPage from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Donors from './pages/Donors';
+import Patients from './pages/Patients';
 import Collections from './pages/Collections';
 import Inventory from './pages/Inventory';
 import Issuance from './pages/Issuance';
@@ -44,6 +45,7 @@ export default function App() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/donors" element={<Donors />} />
+        <Route path="/patients" element={<Patients />} />
         <Route path="/collections" element={<Collections />} />
         <Route path="/screening" element={<Screening />} />
         <Route path="/inventory" element={<Inventory />} />

@@ -78,6 +78,12 @@ export default function Issuance() {
   const [reportData, setReportData] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
 
+  const issuanceViews = [
+    { key: 'add', label: 'Add Issuance' },
+    { key: 'history', label: 'Issued History' },
+    { key: 'reports', label: 'Issuance Reports' },
+  ];
+
   const loadPatients = async (q = '') => {
     const res = await request(`/api/patients/index.php?q=${encodeURIComponent(q)}`);
     setPatients(res.data || []);
@@ -159,17 +165,14 @@ export default function Issuance() {
   useEffect(() => {
     if (!selectedPatient) {
       setUnits([]);
-      setHistory([]);
       return;
     }
     loadUnits(selectedPatient);
-    loadHistory(selectedPatient.id);
     const id = setInterval(() => {
       loadUnits(selectedPatient);
-      loadHistory(selectedPatient.id);
     }, 12000);
     return () => clearInterval(id);
-  }, [selectedPatient, loadHistory]);
+  }, [selectedPatient]);
 
   const savePatient = async (e) => {
     e.preventDefault();
@@ -263,29 +266,63 @@ export default function Issuance() {
     <div className="max-w-6xl mx-auto grid grid-cols-1 gap-5">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
       <div className="card p-4 shadow-sm border border-slate-100 bg-white/95 backdrop-blur">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div className="flex flex-col gap-4">
           <div>
             <h2 className="text-2xl font-bold text-slate-900">Issuance</h2>
             <p className="text-sm text-slate-500">Manage new issuances, review past activity, and generate reports.</p>
           </div>
-          <div className="inline-flex rounded-xl bg-slate-100 p-1 gap-1 self-start lg:self-auto">
-            {[
-              { key: 'add', label: 'Add Issuance' },
-              { key: 'history', label: 'Issued History' },
-              { key: 'reports', label: 'Issuance Reports' },
-            ].map((item) => (
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div className="inline-flex rounded-2xl bg-slate-100 p-1 gap-1 self-start shadow-inner">
+              {issuanceViews.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => setActiveView(item.key)}
+                  className={classNames(
+                    'px-4 py-2 rounded-xl text-sm font-medium transition-all',
+                    activeView === item.key ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900',
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2 self-start lg:self-auto">
               <button
-                key={item.key}
                 type="button"
-                onClick={() => setActiveView(item.key)}
-                className={classNames(
-                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                  activeView === item.key ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900',
-                )}
+                onClick={() => setActiveView('history')}
+                className="px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-sm font-medium text-slate-700"
               >
-                {item.label}
+                View History
               </button>
-            ))}
+              <details className="relative">
+                <summary className="list-none cursor-pointer px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium">
+                  Quick Actions
+                </summary>
+                <div className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200 bg-white shadow-lg p-2 z-10">
+                  <button
+                    type="button"
+                    onClick={() => setActiveView('reports')}
+                    className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    Open Issuance Reports
+                  </button>
+                  <a
+                    href={`/api/reports/export.php?days=${reportDays}&format=excel`}
+                    className="block px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    Export Excel Summary
+                  </a>
+                  <a
+                    href={`/api/reports/export.php?days=${reportDays}&format=pdf`}
+                    className="block px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50"
+                  >
+                    Export PDF Summary
+                  </a>
+                </div>
+              </details>
+            </div>
           </div>
         </div>
       </div>
@@ -303,10 +340,8 @@ export default function Issuance() {
                   setSelectedPatient(p || null);
                   if (p) {
                     loadUnits(p);
-                    loadHistory(p.id);
                   } else {
                     setUnits([]);
-                    setHistory([]);
                   }
                 }}
               >
@@ -415,11 +450,11 @@ export default function Issuance() {
           <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-3 flex-wrap bg-slate-50/50">
             <div>
               <h3 className="font-bold text-slate-800">Issued History</h3>
-              <p className="text-sm text-slate-500">Completed issuance records fetched from the IssuanceHistory endpoint.</p>
+              <p className="text-sm text-slate-500">Completed issuance records fetched from the `IssuanceHistory` API.</p>
             </div>
             <button
               type="button"
-              onClick={loadHistory}
+              onClick={() => loadHistory()}
               className="text-sm px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700"
             >
               Refresh
