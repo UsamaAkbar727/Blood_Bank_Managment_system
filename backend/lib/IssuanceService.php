@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/Permissions.php';
 require_once __DIR__ . '/LogService.php';
+require_once __DIR__ . '/FinancialService.php';
 
 class IssuanceService
 {
@@ -79,6 +80,10 @@ class IssuanceService
         $units = (int)($input['units_issued'] ?? 1);
         $crossmatch = $input['crossmatch_result'] ?? 'compatible';
         $remarks = $input['remarks'] ?? null;
+        $price = isset($input['price']) ? (float)$input['price'] : null;
+        $paymentStatus = $input['payment_status'] ?? 'Pending';
+        $isExchange = !empty($input['is_exchange']) ? 1 : 0;
+        $exchangeReference = $input['exchange_reference'] ?? null;
 
         if ($inventoryId <= 0 || $patientId <= 0 || $units <= 0) {
             throw new InvalidArgumentException('missing_fields');
@@ -97,18 +102,46 @@ class IssuanceService
         // Validate inventory compatibility
         $inventory = self::assertAvailableInventory($inventoryId, $patient['blood_group']);
 
-        // Issue
-        $stmt = db()->prepare('INSERT INTO blood_issuance (inventory_id, patient_id, issued_by, issue_date, units_issued, crossmatch_result, reactions_reported, status, remarks) VALUES (?,?,?,NOW(),?,?,0,"issued",?)');
-        $stmt->bind_param('iiiiss', $inventoryId, $patientId, $issuedBy, $units, $crossmatch, $remarks);
-        $stmt->execute();
-        $issuanceId = $stmt->insert_id;
-        $stmt->close();
+        $defaultPrice = FinancialService::latestPriceForUnit((string)($inventory['component'] ?? ''), (string)($inventory['blood_group'] ?? ''));
+        if ($price === null) {
+            $price = isset($defaultPrice['unit_cost']) ? (float)$defaultPrice['unit_cost'] : 0.0;
+        }
+        if (strcasecmp($paymentStatus, 'Free/Charity') === 0) {
+            $price = 0.0;
+        }
+        if ($isExchange && trim((string)$exchangeReference) === '') {
+            throw new InvalidArgumentException('exchange_reference_required');
+        }
 
-        // Update inventory status (FIFO already assured by caller selection order)
-        $stmt2 = db()->prepare('UPDATE inventory SET status="issued", units_available = GREATEST(units_available - ?, 0) WHERE id=?');
-        $stmt2->bind_param('ii', $units, $inventoryId);
-        $stmt2->execute();
-        $stmt2->close();
+        $db = db();
+        $db->begin_transaction();
+        try {
+            $stmt = $db->prepare('INSERT INTO blood_issuance (inventory_id, patient_id, issued_by, issue_date, units_issued, crossmatch_result, reactions_reported, status, remarks, price, payment_status, is_exchange, exchange_reference) VALUES (?,?,?,NOW(),?,?,0,"issued",?,?,?,?,?)');
+            $stmt->bind_param('iiiissdsis', $inventoryId, $patientId, $issuedBy, $units, $crossmatch, $remarks, $price, $paymentStatus, $isExchange, $exchangeReference);
+            $stmt->execute();
+            $issuanceId = $stmt->insert_id;
+            $stmt->close();
+
+            $stmt2 = $db->prepare('UPDATE inventory SET status="issued", units_available = GREATEST(units_available - ?, 0) WHERE id=?');
+            $stmt2->bind_param('ii', $units, $inventoryId);
+            $stmt2->execute();
+            $stmt2->close();
+
+            if (strcasecmp($paymentStatus, 'Paid') === 0 && $price > 0) {
+                FinancialService::recordIssuanceIncome([
+                    'issuance_id' => $issuanceId,
+                    'patient_id' => $patientId,
+                    'amount' => $price,
+                    'payment_status' => $paymentStatus,
+                    'description' => 'Blood issuance income',
+                ], $issuedBy);
+            }
+
+            $db->commit();
+        } catch (Throwable $e) {
+            $db->rollback();
+            throw $e;
+        }
 
         LogService::write($issuedBy, 'issue', 'inventory', $inventoryId);
 

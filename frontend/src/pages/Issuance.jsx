@@ -67,6 +67,10 @@ export default function Issuance() {
     hospital_ward_name: '',
     authorized_by: '',
     issuance_type: 'Routine',
+    price: '',
+    payment_status: 'Paid',
+    is_exchange: 'No',
+    exchange_reference: '',
     verification_checked: false,
   });
   const [issuing, setIssuing] = useState(false);
@@ -77,6 +81,7 @@ export default function Issuance() {
   const [reportDays, setReportDays] = useState(30);
   const [reportData, setReportData] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
+  const [priceCatalog, setPriceCatalog] = useState([]);
 
   const issuanceViews = [
     { key: 'add', label: 'Add Issuance' },
@@ -118,6 +123,16 @@ export default function Issuance() {
     }
   }, [reportDays]);
 
+  const loadPriceCatalog = useCallback(async () => {
+    try {
+      const res = await request('/api/finance/pricing.php');
+      setPriceCatalog(res.data || []);
+    } catch (err) {
+      console.error('Failed to load pricing catalog', err);
+      setPriceCatalog([]);
+    }
+  }, []);
+
   const loadUnits = async (patient) => {
     setLoadingUnits(true);
     try {
@@ -151,6 +166,7 @@ export default function Issuance() {
 
   useEffect(() => {
     loadPatients();
+    loadPriceCatalog();
   }, []);
 
   useEffect(() => {
@@ -173,6 +189,26 @@ export default function Issuance() {
     }, 12000);
     return () => clearInterval(id);
   }, [selectedPatient]);
+
+  useEffect(() => {
+    if (!issuanceModal || !pendingIssueUnit) return;
+    const match = priceCatalog.find(
+      (p) => p.component === pendingIssueUnit.component && p.blood_group === pendingIssueUnit.blood_group,
+    );
+    if (match && !issuanceForm.price) {
+      setIssuanceForm((prev) => ({ ...prev, price: Number(match.unit_cost).toFixed(2) }));
+    }
+  }, [issuanceModal, pendingIssueUnit, priceCatalog, issuanceForm.price]);
+
+  const suggestedPrice = useMemo(() => {
+    if (!pendingIssueUnit) return '';
+    const match = priceCatalog.find(
+      (p) => p.component === pendingIssueUnit.component && p.blood_group === pendingIssueUnit.blood_group,
+    );
+    return match ? Number(match.unit_cost).toFixed(2) : '';
+  }, [pendingIssueUnit, priceCatalog]);
+
+  const selectedPatientName = selectedPatient?.full_name || issuanceForm.recipient_name || 'N/A';
 
   const savePatient = async (e) => {
     e.preventDefault();
@@ -210,6 +246,10 @@ export default function Issuance() {
       hospital_ward_name: selectedPatient.hospital_name || '',
       authorized_by: '',
       issuance_type: 'Routine',
+      price: '',
+      payment_status: 'Paid',
+      is_exchange: 'No',
+      exchange_reference: '',
       verification_checked: false,
     });
     setIssuanceModal(true);
@@ -230,7 +270,11 @@ export default function Issuance() {
       patient_id: selectedPatient.id,
       units_issued: 1,
       crossmatch_result: 'compatible',
-      remarks: `Recipient: ${issuanceForm.recipient_name || selectedPatient.full_name}; Ward: ${issuanceForm.hospital_ward_name || selectedPatient.hospital_name || ''}; Authorized By: ${issuanceForm.authorized_by || ''}; Type: ${issuanceForm.issuance_type}`,
+      price: issuanceForm.price === '' ? undefined : Number(issuanceForm.price),
+      payment_status: issuanceForm.payment_status,
+      is_exchange: issuanceForm.is_exchange === 'Yes',
+      exchange_reference: issuanceForm.is_exchange === 'Yes' ? issuanceForm.exchange_reference : '',
+      remarks: `Recipient: ${selectedPatientName}; Ward: ${issuanceForm.hospital_ward_name || selectedPatient.hospital_name || ''}; Authorized By: ${issuanceForm.authorized_by || ''}; Type: ${issuanceForm.issuance_type}`,
     };
     try {
       await request('/api/issuance/index.php', { method: 'POST', body: payload });
@@ -242,6 +286,10 @@ export default function Issuance() {
         hospital_ward_name: '',
         authorized_by: '',
         issuance_type: 'Routine',
+        price: '',
+        payment_status: 'Paid',
+        is_exchange: 'No',
+        exchange_reference: '',
         verification_checked: false,
       });
       setToast({ message: 'Unit issued successfully.', type: 'success' });
@@ -271,8 +319,8 @@ export default function Issuance() {
             <h2 className="text-2xl font-bold text-slate-900">Issuance</h2>
             <p className="text-sm text-slate-500">Manage new issuances, review past activity, and generate reports.</p>
           </div>
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-            <div className="inline-flex rounded-2xl bg-slate-100 p-1 gap-1 self-start shadow-inner">
+          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+            <div className="inline-flex rounded-2xl bg-white p-1 gap-1 self-start shadow-inner border border-slate-200">
               {issuanceViews.map((item) => (
                 <button
                   key={item.key}
@@ -292,9 +340,14 @@ export default function Issuance() {
               <button
                 type="button"
                 onClick={() => setActiveView('history')}
-                className="px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-sm font-medium text-slate-700"
+                className={classNames(
+                  'px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
+                  activeView === 'history'
+                    ? 'border-blue-200 bg-blue-50 text-blue-700'
+                    : 'border-slate-200 hover:bg-white text-slate-700',
+                )}
               >
-                View History
+                Issued History
               </button>
               <details className="relative">
                 <summary className="list-none cursor-pointer px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium">
@@ -450,7 +503,7 @@ export default function Issuance() {
           <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-3 flex-wrap bg-slate-50/50">
             <div>
               <h3 className="font-bold text-slate-800">Issued History</h3>
-              <p className="text-sm text-slate-500">Completed issuance records fetched from the `IssuanceHistory` API.</p>
+              <p className="text-sm text-slate-500">Completed issuance records fetched from the IssuanceHistory API.</p>
             </div>
             <button
               type="button"
@@ -707,22 +760,31 @@ export default function Issuance() {
       </Modal>
 
       <Modal
-        open={issuanceModal}
-        onClose={() => {
-          if (issuing) return;
-          setIssuanceModal(false);
-          setPendingIssueUnit(null);
+      open={issuanceModal}
+      onClose={() => {
+        if (issuing) return;
+        setIssuanceModal(false);
+        setPendingIssueUnit(null);
           setIssuanceForm({
             recipient_name: '',
             hospital_ward_name: '',
             authorized_by: '',
             issuance_type: 'Routine',
+            price: '',
+            payment_status: 'Paid',
+            is_exchange: 'No',
+            exchange_reference: '',
             verification_checked: false,
           });
         }}
-        title="Confirm Blood Issuance"
-      >
+      title="Confirm Blood Issuance"
+    >
         <div className="space-y-4">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="text-xs font-bold uppercase tracking-wide text-slate-500">Issuing to</div>
+            <div className="mt-1 text-lg font-semibold text-slate-900">{selectedPatientName}</div>
+          </div>
+
           {pendingIssueUnit && (
             <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-4">
               <div className="text-xs font-bold uppercase tracking-wide text-blue-700 mb-1">Point of No Return</div>
@@ -734,17 +796,6 @@ export default function Issuance() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">
-                Recipient / Patient Name
-              </label>
-              <input
-                className="w-full border border-slate-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                value={issuanceForm.recipient_name}
-                onChange={(e) => setIssuanceForm({ ...issuanceForm, recipient_name: e.target.value })}
-                placeholder="Enter or confirm patient name"
-              />
-            </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">
                 Hospital / Ward Name
@@ -781,6 +832,60 @@ export default function Issuance() {
                 <option value="Cross-match">Cross-match</option>
               </select>
             </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">
+                Price
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                value={issuanceForm.price}
+                onChange={(e) => setIssuanceForm({ ...issuanceForm, price: e.target.value })}
+                placeholder={suggestedPrice ? `Default ${suggestedPrice}` : 'Enter price'}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">
+                Payment Status
+              </label>
+              <select
+                className="w-full border border-slate-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                value={issuanceForm.payment_status}
+                onChange={(e) => setIssuanceForm({ ...issuanceForm, payment_status: e.target.value })}
+              >
+                <option value="Paid">Paid</option>
+                <option value="Pending">Pending</option>
+                <option value="Free/Charity">Free/Charity</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">
+                Transaction Type
+              </label>
+              <select
+                className="w-full border border-slate-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                value={issuanceForm.is_exchange}
+                onChange={(e) => setIssuanceForm({ ...issuanceForm, is_exchange: e.target.value })}
+              >
+                <option value="No">Fresh Purchase</option>
+                <option value="Yes">Exchange (Donor Provided)</option>
+              </select>
+            </div>
+            {issuanceForm.is_exchange === 'Yes' && (
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">
+                  Exchange Reference
+                </label>
+                <input
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  value={issuanceForm.exchange_reference}
+                  onChange={(e) => setIssuanceForm({ ...issuanceForm, exchange_reference: e.target.value })}
+                  placeholder="Enter Donor ID or Bag ID"
+                  required
+                />
+              </div>
+            )}
           </div>
 
           <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -801,6 +906,10 @@ export default function Issuance() {
             <div>Ward: {issuanceForm.hospital_ward_name || selectedPatient?.hospital_name || 'N/A'}</div>
             <div>Authorized by: {issuanceForm.authorized_by || 'N/A'}</div>
             <div>Type: {issuanceForm.issuance_type}</div>
+            <div>Price: {issuanceForm.price || suggestedPrice || 'N/A'}</div>
+            <div>Payment status: {issuanceForm.payment_status}</div>
+            <div>Transaction type: {issuanceForm.is_exchange === 'Yes' ? 'Exchange (Donor Provided)' : 'Fresh Purchase'}</div>
+            {issuanceForm.is_exchange === 'Yes' && <div>Exchange reference: {issuanceForm.exchange_reference || 'N/A'}</div>}
           </div>
         </div>
         <div className="mt-5 flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
@@ -816,6 +925,10 @@ export default function Issuance() {
                 hospital_ward_name: '',
                 authorized_by: '',
                 issuance_type: 'Routine',
+                price: '',
+                payment_status: 'Paid',
+                is_exchange: 'No',
+                exchange_reference: '',
                 verification_checked: false,
               });
             }}

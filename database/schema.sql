@@ -220,6 +220,10 @@ CREATE TABLE IF NOT EXISTS blood_issuance (
   crossmatch_result ENUM('compatible','incompatible','not_applicable') NOT NULL DEFAULT 'compatible',
   reactions_reported BOOLEAN NOT NULL DEFAULT 0,
   status ENUM('issued','returned','voided') NOT NULL DEFAULT 'issued',
+  price DECIMAL(12,2) NOT NULL DEFAULT 0,
+  payment_status ENUM('Paid','Pending','Free/Charity') NOT NULL DEFAULT 'Pending',
+  is_exchange BOOLEAN NOT NULL DEFAULT 0,
+  exchange_reference VARCHAR(120) NULL,
   remarks VARCHAR(255),
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -230,6 +234,12 @@ CREATE TABLE IF NOT EXISTS blood_issuance (
   CONSTRAINT fk_blood_issuance_patient FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT fk_blood_issuance_issued_by FOREIGN KEY (issued_by) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE blood_issuance
+  ADD COLUMN IF NOT EXISTS price DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER status,
+  ADD COLUMN IF NOT EXISTS payment_status ENUM('Paid','Pending','Free/Charity') NOT NULL DEFAULT 'Pending' AFTER price,
+  ADD COLUMN IF NOT EXISTS is_exchange BOOLEAN NOT NULL DEFAULT 0 AFTER payment_status,
+  ADD COLUMN IF NOT EXISTS exchange_reference VARCHAR(120) NULL AFTER is_exchange;
 
 -- System/event logs
 CREATE TABLE IF NOT EXISTS logs (
@@ -305,6 +315,23 @@ CREATE TABLE IF NOT EXISTS notifications (
   KEY idx_notifications_user (user_id, is_read),
   KEY idx_notifications_event (event_key, snoozed_until, is_read),
   CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Income ledger for paid issuance transactions
+CREATE TABLE IF NOT EXISTS income_transactions (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  source_type VARCHAR(40) NOT NULL,
+  source_id INT UNSIGNED NOT NULL,
+  patient_id INT UNSIGNED NULL,
+  description VARCHAR(255),
+  amount DECIMAL(12,2) NOT NULL,
+  transaction_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  recorded_by INT UNSIGNED NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_income_source (source_type, source_id),
+  KEY idx_income_date (transaction_date),
+  CONSTRAINT fk_income_patient FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT fk_income_recorded_by FOREIGN KEY (recorded_by) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Backup logs

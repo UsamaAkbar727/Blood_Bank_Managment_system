@@ -3,6 +3,48 @@ require_once __DIR__ . '/Permissions.php';
 
 class FinancialService
 {
+    public static function latestPriceForUnit(string $component, string $bloodGroup): ?array
+    {
+        $stmt = db()->prepare('SELECT bp.* FROM blood_pricing bp WHERE bp.component=? AND bp.blood_group=? ORDER BY bp.effective_from DESC, bp.id DESC LIMIT 1');
+        $stmt->bind_param('ss', $component, $bloodGroup);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $row ?: null;
+    }
+
+    public static function recordIssuanceIncome(array $input, int $userId): ?array
+    {
+        $issuanceId = (int)($input['issuance_id'] ?? 0);
+        $amount = isset($input['amount']) ? (float)$input['amount'] : null;
+        $paymentStatus = $input['payment_status'] ?? 'Pending';
+        if ($issuanceId <= 0 || $amount === null) {
+            throw new InvalidArgumentException('missing_fields');
+        }
+        if (strcasecmp($paymentStatus, 'Paid') !== 0 || $amount <= 0) {
+            return null;
+        }
+
+        $stmt = db()->prepare('INSERT INTO income_transactions (source_type, source_id, patient_id, description, amount, transaction_date, recorded_by) VALUES ("issuance", ?, ?, ?, ?, NOW(), ?)');
+        $patientId = (int)($input['patient_id'] ?? 0);
+        $description = $input['description'] ?? 'Blood issuance income';
+        $stmt->bind_param('iisdi', $issuanceId, $patientId, $description, $amount, $userId);
+        $stmt->execute();
+        $id = $stmt->insert_id;
+        $stmt->close();
+        return self::getIncomeTransaction($id);
+    }
+
+    public static function getIncomeTransaction(int $id): ?array
+    {
+        $stmt = db()->prepare('SELECT it.*, p.full_name AS patient_name, p.patient_code FROM income_transactions it LEFT JOIN patients p ON p.id = it.patient_id WHERE it.id = ? LIMIT 1');
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $row ?: null;
+    }
+
     /* Pricing */
     public static function upsertPrice(array $input, int $userId): array
     {
