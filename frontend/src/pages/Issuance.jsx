@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { classNames, request } from '../lib/api';
 import Modal from '../components/Modal';
 import Toast from '../components/Toast';
@@ -54,6 +54,8 @@ const normalizeBloodGroup = (raw) => {
 
 export default function Issuance() {
   const [patients, setPatients] = useState([]);
+  const [patientSearch, setPatientSearch] = useState('');
+  const [patientSearchLoading, setPatientSearchLoading] = useState(false);
   const [patientForm, setPatientForm] = useState(blankPatient);
   const [patientError, setPatientError] = useState('');
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -63,7 +65,6 @@ export default function Issuance() {
   const [issuanceModal, setIssuanceModal] = useState(false);
   const [pendingIssueUnit, setPendingIssueUnit] = useState(null);
   const [issuanceForm, setIssuanceForm] = useState({
-    recipient_name: '',
     hospital_ward_name: '',
     authorized_by: '',
     issuance_type: 'Routine',
@@ -82,6 +83,8 @@ export default function Issuance() {
   const [reportData, setReportData] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [priceCatalog, setPriceCatalog] = useState([]);
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
+  const quickActionsRef = useRef(null);
 
   const issuanceViews = [
     { key: 'add', label: 'Add Issuance' },
@@ -89,10 +92,19 @@ export default function Issuance() {
     { key: 'reports', label: 'Issuance Reports' },
   ];
 
-  const loadPatients = async (q = '') => {
-    const res = await request(`/api/patients/index.php?q=${encodeURIComponent(q)}`);
-    setPatients(res.data || []);
-  };
+  const loadPatients = useCallback(async (q = '') => {
+    setPatientSearchLoading(true);
+    try {
+      const res = await request(`/api/patients/index.php?q=${encodeURIComponent(q)}`);
+      setPatients(res.data || []);
+    } catch (err) {
+      console.error('Failed to load patients', err);
+      setPatients([]);
+      setToast({ message: 'Unable to load patients.', type: 'error' });
+    } finally {
+      setPatientSearchLoading(false);
+    }
+  }, []);
 
   const loadHistory = useCallback(async (patientId = null) => {
     setHistoryLoading(true);
@@ -170,6 +182,14 @@ export default function Issuance() {
   }, []);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      loadPatients(patientSearch.trim());
+    }, patientSearch.trim() ? 250 : 0);
+
+    return () => clearTimeout(timer);
+  }, [patientSearch, loadPatients]);
+
+  useEffect(() => {
     if (activeView === 'history') {
       loadHistory();
     }
@@ -177,6 +197,12 @@ export default function Issuance() {
       loadReports(reportDays);
     }
   }, [activeView, loadHistory, loadReports, reportDays]);
+
+  useEffect(() => {
+    if (activeView !== 'reports' && quickActionsOpen) {
+      setQuickActionsOpen(false);
+    }
+  }, [activeView, quickActionsOpen]);
 
   useEffect(() => {
     if (!selectedPatient) {
@@ -200,6 +226,30 @@ export default function Issuance() {
     }
   }, [issuanceModal, pendingIssueUnit, priceCatalog, issuanceForm.price]);
 
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (quickActionsRef.current && !quickActionsRef.current.contains(event.target)) {
+        setQuickActionsOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setQuickActionsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   const suggestedPrice = useMemo(() => {
     if (!pendingIssueUnit) return '';
     const match = priceCatalog.find(
@@ -208,7 +258,7 @@ export default function Issuance() {
     return match ? Number(match.unit_cost).toFixed(2) : '';
   }, [pendingIssueUnit, priceCatalog]);
 
-  const selectedPatientName = selectedPatient?.full_name || issuanceForm.recipient_name || 'N/A';
+  const selectedPatientName = selectedPatient?.full_name || 'N/A';
 
   const savePatient = async (e) => {
     e.preventDefault();
@@ -242,7 +292,6 @@ export default function Issuance() {
     }
     setPendingIssueUnit(unit);
     setIssuanceForm({
-      recipient_name: selectedPatient.full_name || '',
       hospital_ward_name: selectedPatient.hospital_name || '',
       authorized_by: '',
       issuance_type: 'Routine',
@@ -282,7 +331,6 @@ export default function Issuance() {
       setIssuanceModal(false);
       setPendingIssueUnit(null);
       setIssuanceForm({
-        recipient_name: '',
         hospital_ward_name: '',
         authorized_by: '',
         issuance_type: 'Routine',
@@ -305,10 +353,38 @@ export default function Issuance() {
     [patients],
   );
 
+  const visiblePatients = useMemo(() => {
+    const q = patientSearch.trim().toLowerCase();
+    if (!q) return patientOptions;
+
+    const filtered = patientOptions.filter((opt, index) => {
+      const patient = patients[index];
+      const text = [
+        opt.label,
+        patient?.hospital_id,
+        patient?.hospital_name,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return text.includes(q);
+    });
+    if (selectedPatient && !filtered.some((opt) => String(opt.value) === String(selectedPatient.id))) {
+      const selectedOption = patientOptions.find((opt) => String(opt.value) === String(selectedPatient.id));
+      if (selectedOption) filtered.unshift(selectedOption);
+    }
+    return filtered;
+  }, [patientOptions, patientSearch, patients]);
+
+  const patientSearchEmpty = !patientSearchLoading && visiblePatients.length === 0;
+
   const reportSummary = useMemo(() => {
     const daily = reportData?.issuance_daily || [];
     return { totalIssued: daily.reduce((sum, row) => sum + Number(row.total || 0), 0) };
   }, [reportData]);
+
+  const showIssuedHistoryAction = activeView === 'history';
+  const showQuickActions = activeView === 'reports';
 
   return (
     <div className="max-w-6xl mx-auto grid grid-cols-1 gap-5">
@@ -336,45 +412,77 @@ export default function Issuance() {
               ))}
             </div>
 
-            <div className="flex items-center gap-2 self-start lg:self-auto">
-              <button
-                type="button"
-                onClick={() => setActiveView('history')}
-                className={classNames(
-                  'px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
-                  activeView === 'history'
-                    ? 'border-blue-200 bg-blue-50 text-blue-700'
-                    : 'border-slate-200 hover:bg-white text-slate-700',
-                )}
-              >
-                Issued History
-              </button>
-              <details className="relative">
-                <summary className="list-none cursor-pointer px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium">
-                  Quick Actions
-                </summary>
-                <div className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200 bg-white shadow-lg p-2 z-10">
+            <div className="flex items-center gap-2 self-start lg:self-auto min-h-[44px]">
+              <div className="w-[126px]">
+                {showIssuedHistoryAction ? (
                   <button
                     type="button"
-                    onClick={() => setActiveView('reports')}
-                    className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50"
+                    onClick={() => setActiveView('history')}
+                    className={classNames(
+                      'w-full px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
+                      activeView === 'history'
+                        ? 'border-blue-200 bg-blue-50 text-blue-700'
+                        : 'border-slate-200 hover:bg-white text-slate-700',
+                    )}
                   >
-                    Open Issuance Reports
+                    Issued History
                   </button>
-                  <a
-                    href={`/api/reports/export.php?days=${reportDays}&format=excel`}
-                    className="block px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50"
+                ) : (
+                  <div aria-hidden="true" className="h-10" />
+                )}
+              </div>
+              <div className="w-[140px]">
+                {showQuickActions ? (
+                  <div
+                    ref={quickActionsRef}
+                    className="relative"
+                    onMouseLeave={() => setQuickActionsOpen(false)}
                   >
-                    Export Excel Summary
-                  </a>
-                  <a
-                    href={`/api/reports/export.php?days=${reportDays}&format=pdf`}
-                    className="block px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50"
-                  >
-                    Export PDF Summary
-                  </a>
-                </div>
-              </details>
+                    <button
+                      type="button"
+                      aria-expanded={quickActionsOpen}
+                      aria-haspopup="menu"
+                      onClick={() => setQuickActionsOpen((open) => !open)}
+                      className="w-full px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium"
+                    >
+                      Quick Actions
+                    </button>
+                    {quickActionsOpen && (
+                      <div
+                        role="menu"
+                        className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200 bg-white shadow-lg p-2 z-10"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveView('reports');
+                            setQuickActionsOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50"
+                        >
+                          Open Issuance Reports
+                        </button>
+                        <a
+                          href={`/api/reports/export.php?days=${reportDays}&format=excel`}
+                          onClick={() => setQuickActionsOpen(false)}
+                          className="block px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50"
+                        >
+                          Export Excel Summary
+                        </a>
+                        <a
+                          href={`/api/reports/export.php?days=${reportDays}&format=pdf`}
+                          onClick={() => setQuickActionsOpen(false)}
+                          className="block px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50"
+                        >
+                          Export PDF Summary
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div aria-hidden="true" className="h-10" />
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -383,9 +491,29 @@ export default function Issuance() {
       {activeView === 'add' && (
         <>
           <div className="card p-4 flex items-center justify-between gap-3 flex-wrap shadow-sm border border-slate-100">
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex flex-col gap-3 w-full lg:w-auto">
+              <div className="relative w-full sm:min-w-[320px]">
+                <input
+                  type="text"
+                  value={patientSearch}
+                  onChange={(e) => setPatientSearch(e.target.value)}
+                  placeholder="Search by name, blood group, or hospital ID..."
+                  className="w-full border border-slate-200 rounded-lg px-4 py-2.5 pr-24 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => loadPatients(patientSearch.trim())}
+                  className="absolute inset-y-1 right-1 flex items-center justify-center px-3 rounded-md border border-blue-200 bg-blue-50 text-[11px] font-bold uppercase tracking-wide text-blue-700 shadow-sm hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                >
+                  {patientSearchLoading ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-300 border-t-blue-700" />
+                  ) : (
+                    <span>Search</span>
+                  )}
+                </button>
+              </div>
               <select
-                className="border border-slate-200 rounded-lg px-4 py-2 w-full sm:min-w-[300px] sm:w-auto focus:ring-2 focus:ring-blue-500 outline-none"
+                className="border border-slate-200 rounded-lg px-4 py-2 w-full sm:min-w-[320px] sm:w-auto focus:ring-2 focus:ring-blue-500 outline-none"
                 value={selectedPatient?.id || ''}
                 onChange={(e) => {
                   const selectedId = e.target.value;
@@ -399,14 +527,30 @@ export default function Issuance() {
                 }}
               >
                 <option value="">Select patient to issue blood...</option>
-                {patientOptions.map((opt) => (
+                {visiblePatients.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
                 ))}
               </select>
+              {patientSearchEmpty && (
+                <div className="text-sm">
+                  <button
+                    type="button"
+                    className="text-blue-700 hover:text-blue-800 font-medium underline underline-offset-2"
+                    onClick={() => {
+                      setPatientSearch('');
+                      setPatientForm(blankPatient);
+                      setPatientError('');
+                      setPatientModal(true);
+                    }}
+                  >
+                    No results found - Register New Patient
+                  </button>
+                </div>
+              )}
               <button
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors self-start"
                 onClick={() => {
                   setPatientForm(blankPatient);
                   setPatientError('');
@@ -416,7 +560,9 @@ export default function Issuance() {
                 Add New Patient
               </button>
             </div>
-            {!selectedPatient && <div className="text-sm text-slate-500 italic">Please select a patient to view compatible units.</div>}
+            {!selectedPatient && !patientSearchEmpty && (
+              <div className="text-sm text-slate-500 italic">Please select a patient to view compatible units.</div>
+            )}
           </div>
 
           <div className="card p-0 overflow-hidden shadow-sm border border-slate-100">
@@ -588,18 +734,6 @@ export default function Issuance() {
                 >
                   Refresh
                 </button>
-                <a
-                  href={`/api/reports/export.php?days=${reportDays}&format=excel`}
-                  className="px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm"
-                >
-                  Export Excel
-                </a>
-                <a
-                  href={`/api/reports/export.php?days=${reportDays}&format=pdf`}
-                  className="px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm"
-                >
-                  Export PDF
-                </a>
               </div>
             </div>
           </div>
@@ -760,13 +894,12 @@ export default function Issuance() {
       </Modal>
 
       <Modal
-      open={issuanceModal}
-      onClose={() => {
-        if (issuing) return;
-        setIssuanceModal(false);
-        setPendingIssueUnit(null);
+        open={issuanceModal}
+        onClose={() => {
+          if (issuing) return;
+          setIssuanceModal(false);
+          setPendingIssueUnit(null);
           setIssuanceForm({
-            recipient_name: '',
             hospital_ward_name: '',
             authorized_by: '',
             issuance_type: 'Routine',
@@ -777,12 +910,13 @@ export default function Issuance() {
             verification_checked: false,
           });
         }}
-      title="Confirm Blood Issuance"
-    >
+        title="Confirm Blood Issuance"
+      >
         <div className="space-y-4">
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <div className="text-xs font-bold uppercase tracking-wide text-slate-500">Issuing to</div>
-            <div className="mt-1 text-lg font-semibold text-slate-900">{selectedPatientName}</div>
+            <div className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              Issuing to: <span className="text-slate-900 normal-case">{selectedPatientName}</span>
+            </div>
           </div>
 
           {pendingIssueUnit && (
@@ -866,16 +1000,25 @@ export default function Issuance() {
               <select
                 className="w-full border border-slate-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                 value={issuanceForm.is_exchange}
-                onChange={(e) => setIssuanceForm({ ...issuanceForm, is_exchange: e.target.value })}
+                onChange={(e) =>
+                  setIssuanceForm({
+                    ...issuanceForm,
+                    is_exchange: e.target.value,
+                    exchange_reference: e.target.value === 'Yes' ? issuanceForm.exchange_reference : '',
+                  })
+                }
               >
                 <option value="No">Fresh Purchase</option>
                 <option value="Yes">Exchange (Donor Provided)</option>
               </select>
+              <p className="mt-1 text-xs text-slate-500">
+                Select Exchange if a donor-provided bag or donor ID is being credited back into stock.
+              </p>
             </div>
             {issuanceForm.is_exchange === 'Yes' && (
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1">
-                  Exchange Reference
+                  Donor ID or Bag ID
                 </label>
                 <input
                   className="w-full border border-slate-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -902,7 +1045,7 @@ export default function Issuance() {
 
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
             <div className="font-semibold text-slate-800 mb-1">Final confirmation</div>
-            <div>Recipient: {issuanceForm.recipient_name || selectedPatient?.full_name || 'N/A'}</div>
+            <div>Recipient: {selectedPatientName}</div>
             <div>Ward: {issuanceForm.hospital_ward_name || selectedPatient?.hospital_name || 'N/A'}</div>
             <div>Authorized by: {issuanceForm.authorized_by || 'N/A'}</div>
             <div>Type: {issuanceForm.issuance_type}</div>
@@ -921,7 +1064,6 @@ export default function Issuance() {
               setIssuanceModal(false);
               setPendingIssueUnit(null);
               setIssuanceForm({
-                recipient_name: '',
                 hospital_ward_name: '',
                 authorized_by: '',
                 issuance_type: 'Routine',
@@ -953,3 +1095,4 @@ export default function Issuance() {
     </div>
   );
 }
+
