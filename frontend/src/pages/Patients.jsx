@@ -84,7 +84,13 @@ export default function Patients() {
       setToast({ message: 'Patient removed successfully.', type: 'success' });
       load();
     } catch (err) {
-      setToast({ message: err.message || 'Unable to remove patient.', type: 'error' });
+      const friendlyMessage =
+        err.message === 'patient_has_blood_issuances'
+          ? 'This patient cannot be deleted because blood issuances already reference them.'
+          : err.message === 'patient_has_billing_records'
+            ? 'This patient cannot be deleted because billing records already reference them.'
+            : err.message || 'Unable to remove patient.';
+      setToast({ message: friendlyMessage, type: 'error' });
     }
   };
 
