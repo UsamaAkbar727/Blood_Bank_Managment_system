@@ -56,6 +56,10 @@ export default function Issuance() {
   const [patients, setPatients] = useState([]);
   const [patientSearch, setPatientSearch] = useState('');
   const [patientSearchLoading, setPatientSearchLoading] = useState(false);
+  const [patientSearchOpen, setPatientSearchOpen] = useState(false);
+  const [patientSearchActiveIndex, setPatientSearchActiveIndex] = useState(-1);
+  const patientSearchRef = useRef(null);
+  const patientSearchInputRef = useRef(null);
   const [patientForm, setPatientForm] = useState(blankPatient);
   const [patientError, setPatientError] = useState('');
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -145,6 +149,14 @@ export default function Issuance() {
     }
   }, []);
 
+  const resetPatientSelection = useCallback(() => {
+    setSelectedPatient(null);
+    setPatientSearch('');
+    setPatientSearchOpen(false);
+    setPatientSearchActiveIndex(-1);
+    setUnits([]);
+  }, []);
+
   const loadUnits = async (patient) => {
     setLoadingUnits(true);
     try {
@@ -179,7 +191,8 @@ export default function Issuance() {
   useEffect(() => {
     loadPatients();
     loadPriceCatalog();
-  }, []);
+    resetPatientSelection();
+  }, [resetPatientSelection]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -196,7 +209,11 @@ export default function Issuance() {
     if (activeView === 'reports') {
       loadReports(reportDays);
     }
-  }, [activeView, loadHistory, loadReports, reportDays]);
+
+    if (activeView === 'add') {
+      resetPatientSelection();
+    }
+  }, [activeView, loadHistory, loadReports, reportDays, resetPatientSelection]);
 
   useEffect(() => {
     if (activeView !== 'reports' && quickActionsOpen) {
@@ -349,7 +366,7 @@ export default function Issuance() {
   };
 
   const patientOptions = useMemo(
-    () => patients.map((p) => ({ value: p.id, label: `${p.patient_code} - ${p.full_name} (${p.blood_group})`, blood: p.blood_group })),
+    () => patients.map((p) => ({ value: p.id, label: `${p.patient_code} - ${p.full_name} (${p.blood_group})`, blood: p.blood_group, patient: p })),
     [patients],
   );
 
@@ -378,12 +395,57 @@ export default function Issuance() {
 
   const patientSearchEmpty = !patientSearchLoading && visiblePatients.length === 0;
 
+  const selectPatient = (option) => {
+    setSelectedPatient(option.patient);
+    setPatientSearch(option.label);
+    setPatientSearchOpen(false);
+    setPatientSearchActiveIndex(-1);
+    loadUnits(option.patient);
+  };
+
+  const handlePatientSearchKeyDown = (event) => {
+    if (event.key === 'ArrowDown' && visiblePatients.length > 0) {
+      event.preventDefault();
+      setPatientSearchOpen(true);
+      setPatientSearchActiveIndex((current) => (current + 1) % visiblePatients.length);
+      return;
+    }
+    if (event.key === 'ArrowUp' && visiblePatients.length > 0) {
+      event.preventDefault();
+      setPatientSearchOpen(true);
+      setPatientSearchActiveIndex((current) => (current <= 0 ? visiblePatients.length - 1 : current - 1));
+      return;
+    }
+    if (event.key === 'Enter' && patientSearchOpen && patientSearchActiveIndex >= 0) {
+      event.preventDefault();
+      const option = visiblePatients[patientSearchActiveIndex];
+      if (option) selectPatient(option);
+      return;
+    }
+    if (event.key === 'Escape') {
+      setPatientSearchOpen(false);
+      setPatientSearchActiveIndex(-1);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (patientSearchRef.current && !patientSearchRef.current.contains(event.target)) {
+        setPatientSearchOpen(false);
+        setPatientSearchActiveIndex(-1);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const reportSummary = useMemo(() => {
     const daily = reportData?.issuance_daily || [];
     return { totalIssued: daily.reduce((sum, row) => sum + Number(row.total || 0), 0) };
   }, [reportData]);
 
-  const showIssuedHistoryAction = activeView === 'history';
+  const showIssuedHistoryAction = activeView !== 'history';
   const showQuickActions = activeView === 'reports';
 
   return (
@@ -488,13 +550,31 @@ export default function Issuance() {
         <>
           <div className="card p-4 flex items-center justify-between gap-3 flex-wrap shadow-sm border border-slate-100">
             <div className="flex flex-col gap-3 w-full lg:w-auto">
-              <div className="relative w-full sm:min-w-[320px]">
+              <div className="relative w-full sm:min-w-[320px]" ref={patientSearchRef}>
                 <input
                   type="text"
+                  ref={patientSearchInputRef}
                   value={patientSearch}
-                  onChange={(e) => setPatientSearch(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const hasQuery = value.trim().length > 0;
+                    setPatientSearch(value);
+                    setPatientSearchOpen(hasQuery);
+                    setPatientSearchActiveIndex(hasQuery ? 0 : -1);
+                    if (!hasQuery && selectedPatient) {
+                      setSelectedPatient(null);
+                      setUnits([]);
+                    }
+                  }}
+                  onFocus={() => {
+                    setPatientSearchActiveIndex(patientSearch.trim().length > 0 ? 0 : -1);
+                  }}
+                  onKeyDown={handlePatientSearchKeyDown}
                   placeholder="Search by name, blood group, or hospital ID..."
                   className="w-full border border-slate-200 rounded-lg px-4 py-2.5 pr-24 focus:ring-2 focus:ring-blue-500 outline-none"
+                  aria-autocomplete="list"
+                  aria-expanded={patientSearchOpen}
+                  aria-controls="patient-search-list"
                 />
                 <button
                   type="button"
@@ -507,28 +587,41 @@ export default function Issuance() {
                     <span>Search</span>
                   )}
                 </button>
+                {patientSearchOpen && (
+                  <div
+                    id="patient-search-list"
+                    className="absolute z-20 mt-2 max-h-72 w-full overflow-auto rounded-2xl border border-slate-200 bg-white shadow-lg"
+                    role="listbox"
+                  >
+                    {patientSearchLoading ? (
+                      <div className="p-4 text-slate-500">Searching...</div>
+                    ) : visiblePatients.length > 0 ? (
+                      visiblePatients.map((opt, index) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          role="option"
+                          aria-selected={patientSearchActiveIndex === index}
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => selectPatient(opt)}
+                          onMouseEnter={() => setPatientSearchActiveIndex(index)}
+                          className={classNames(
+                            'w-full text-left px-4 py-3 border-b border-slate-100 transition-colors',
+                            patientSearchActiveIndex === index ? 'bg-slate-100 text-slate-900' : 'bg-white text-slate-700 hover:bg-slate-50',
+                          )}
+                        >
+                          <div className="text-sm font-medium">{opt.label}</div>
+                          {opt.patient.hospital_name && (
+                            <div className="text-xs text-slate-500">{opt.patient.hospital_name}</div>
+                          )}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="p-4 text-slate-500">No patients found</div>
+                    )}
+                  </div>
+                )}
               </div>
-              <select
-                className="border border-slate-200 rounded-lg px-4 py-2 w-full sm:min-w-[320px] sm:w-auto focus:ring-2 focus:ring-blue-500 outline-none"
-                value={selectedPatient?.id || ''}
-                onChange={(e) => {
-                  const selectedId = e.target.value;
-                  const p = patients.find((x) => String(x.id) === String(selectedId));
-                  setSelectedPatient(p || null);
-                  if (p) {
-                    loadUnits(p);
-                  } else {
-                    setUnits([]);
-                  }
-                }}
-              >
-                <option value="">Select patient to issue blood...</option>
-                {visiblePatients.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
               {patientSearchEmpty && (
                 <div className="text-sm">
                   <button
