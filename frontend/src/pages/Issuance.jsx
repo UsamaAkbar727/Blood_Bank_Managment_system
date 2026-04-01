@@ -433,11 +433,7 @@ export default function Issuance() {
               </div>
               <div className="w-[140px]">
                 {showQuickActions ? (
-                  <div
-                    ref={quickActionsRef}
-                    className="relative"
-                    onMouseLeave={() => setQuickActionsOpen(false)}
-                  >
+                  <div ref={quickActionsRef} className="relative">
                     <button
                       type="button"
                       aria-expanded={quickActionsOpen}
