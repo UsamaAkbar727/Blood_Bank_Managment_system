@@ -185,6 +185,7 @@ export default function Screening() {
       test_date: form.test_date.replace('T', ' '),
       hemoglobin_level: form.hemoglobin_level === '' ? null : Number(form.hemoglobin_level),
       result_status: form.result_status,
+      manual_status: form.result_status,
       remarks: form.remarks,
       hiv: form.hiv ? 1 : 0,
       hbsag: form.hbsag ? 1 : 0,

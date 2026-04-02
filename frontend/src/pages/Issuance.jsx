@@ -155,6 +155,11 @@ export default function Issuance() {
     setPatientSearchOpen(false);
     setPatientSearchActiveIndex(-1);
     setUnits([]);
+    setPatientForm(blankPatient);
+    setPatientError('');
+    if (patientSearchInputRef.current) {
+      patientSearchInputRef.current.value = '';
+    }
   }, []);
 
   const loadUnits = async (patient) => {
@@ -393,7 +398,7 @@ export default function Issuance() {
     return filtered;
   }, [patientOptions, patientSearch, patients]);
 
-  const patientSearchEmpty = !patientSearchLoading && visiblePatients.length === 0;
+  const patientSearchEmpty = !patientSearchLoading && patientSearch.trim().length > 0 && visiblePatients.length === 0;
 
   const selectPatient = (option) => {
     setSelectedPatient(option.patient);
@@ -559,7 +564,7 @@ export default function Issuance() {
                     const value = e.target.value;
                     const hasQuery = value.trim().length > 0;
                     setPatientSearch(value);
-                    setPatientSearchOpen(hasQuery);
+                    setPatientSearchOpen(true);
                     setPatientSearchActiveIndex(hasQuery ? 0 : -1);
                     if (!hasQuery && selectedPatient) {
                       setSelectedPatient(null);
@@ -567,6 +572,7 @@ export default function Issuance() {
                     }
                   }}
                   onFocus={() => {
+                    setPatientSearchOpen(true);
                     setPatientSearchActiveIndex(patientSearch.trim().length > 0 ? 0 : -1);
                   }}
                   onKeyDown={handlePatientSearchKeyDown}
@@ -578,7 +584,17 @@ export default function Issuance() {
                 />
                 <button
                   type="button"
-                  onClick={() => loadPatients(patientSearch.trim())}
+                  onClick={() => {
+                    const trimmed = patientSearch.trim();
+                    if (!trimmed) {
+                      loadPatients();
+                      setPatientSearchOpen(true);
+                      setPatientSearchActiveIndex(-1);
+                    } else {
+                      loadPatients(trimmed);
+                      setPatientSearchOpen(true);
+                    }
+                  }}
                   className="absolute inset-y-1 right-1 flex items-center justify-center px-3 rounded-md border border-blue-200 bg-blue-50 text-[11px] font-bold uppercase tracking-wide text-blue-700 shadow-sm hover:bg-blue-100 hover:border-blue-300 transition-colors"
                 >
                   {patientSearchLoading ? (
