@@ -57,7 +57,7 @@ class IssuanceService
     private static function assertAvailableInventory(int $inventoryId, string $patientBlood): array
     {
         Permissions::allow('inventory');
-        $stmt = db()->prepare('SELECT * FROM inventory WHERE id=? AND status="available" LIMIT 1');
+        $stmt = db()->prepare('SELECT * FROM inventory WHERE id=? AND status="available" AND units_available > 0 LIMIT 1');
         $stmt->bind_param('i', $inventoryId);
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
@@ -83,7 +83,7 @@ class IssuanceService
         $price = isset($input['price']) ? (float)$input['price'] : null;
         $paymentStatus = $input['payment_status'] ?? 'Pending';
         $isExchange = !empty($input['is_exchange']) ? 1 : 0;
-        $exchangeReference = $input['exchange_reference'] ?? null;
+        $exchangeReference = trim((string)($input['exchange_reference'] ?? ''));
 
         if ($inventoryId <= 0 || $patientId <= 0 || $units <= 0) {
             throw new InvalidArgumentException('missing_fields');
@@ -99,8 +99,11 @@ class IssuanceService
             throw new InvalidArgumentException('patient_not_found');
         }
 
-        // Validate inventory compatibility
+        // Validate inventory compatibility and quantity
         $inventory = self::assertAvailableInventory($inventoryId, $patient['blood_group']);
+        if ($units > (int)($inventory['units_available'] ?? 0)) {
+            throw new InvalidArgumentException('insufficient_units');
+        }
 
         $defaultPrice = FinancialService::latestPriceForUnit((string)($inventory['component'] ?? ''), (string)($inventory['blood_group'] ?? ''));
         if ($price === null) {
@@ -109,7 +112,7 @@ class IssuanceService
         if (strcasecmp($paymentStatus, 'Free/Charity') === 0) {
             $price = 0.0;
         }
-        if ($isExchange && trim((string)$exchangeReference) === '') {
+        if ($isExchange && $exchangeReference === '') {
             throw new InvalidArgumentException('exchange_reference_required');
         }
 
@@ -122,10 +125,15 @@ class IssuanceService
             $issuanceId = $stmt->insert_id;
             $stmt->close();
 
-            $stmt2 = $db->prepare('UPDATE inventory SET status="issued", units_available = GREATEST(units_available - ?, 0) WHERE id=?');
-            $stmt2->bind_param('ii', $units, $inventoryId);
+            $stmt2 = $db->prepare('UPDATE inventory SET units_available = GREATEST(CAST(units_available AS SIGNED) - ?, 0), status = CASE WHEN CAST(units_available AS SIGNED) - ? <= 0 THEN "issued" ELSE status END WHERE id=?');
+            $stmt2->bind_param('iii', $units, $units, $inventoryId);
             $stmt2->execute();
             $stmt2->close();
+
+            FinancialService::recordIssuanceAccounting([
+                'issuance_id' => $issuanceId,
+                'amount' => $price,
+            ]);
 
             if (strcasecmp($paymentStatus, 'Paid') === 0 && $price > 0) {
                 FinancialService::recordIssuanceIncome([

@@ -41,8 +41,8 @@ class ScreeningService
 
         $testDate = $input['test_date'] ?? date('Y-m-d H:i:s');
 
-        $resultStatus = $input['result_status'] ?? 'pending';
-        if (!in_array($resultStatus, ['pending', 'safe', 'rejected'], true)) {
+        $manualStatus = strtolower(trim((string)($input['manual_status'] ?? $input['result_status'] ?? 'pending')));
+        if (!in_array($manualStatus, ['pending', 'safe', 'rejected'], true)) {
             throw new InvalidArgumentException('invalid_result_status');
         }
 
@@ -58,19 +58,29 @@ class ScreeningService
             'syphilis' => self::normalizeReactiveFlag($input['syphilis'] ?? 0),
             'blood_group_confirmed' => null,
             'hemoglobin_level' => $input['hemoglobin_level'] ?? null,
-            'result_status' => $resultStatus,
+            'manual_status' => $manualStatus,
+            'result_status' => $manualStatus,
             'remarks' => $input['remarks'] ?? null,
         ];
     }
 
     private static function computeResultStatus(array $data): string
     {
+        $manualStatus = strtolower(trim((string)($data['manual_status'] ?? $data['result_status'] ?? 'pending')));
+
+        if ($manualStatus === 'rejected') {
+            return 'rejected';
+        }
+
+        // Reactive disease flags always force rejection, even if the user picked pending or safe.
         foreach (self::REACTIVE_FIELDS as $field) {
             if (self::normalizeReactiveFlag($data[$field] ?? 0) === 1) {
                 return 'rejected';
             }
         }
-        return 'safe';
+
+        // Preserve the user's manual choice when no reactive test is present.
+        return in_array($manualStatus, ['pending', 'safe'], true) ? $manualStatus : 'pending';
     }
 
     private static function collectionData(int $collectionId): ?array

@@ -35,6 +35,37 @@ class FinancialService
         return self::getIncomeTransaction($id);
     }
 
+    public static function recordIssuanceAccounting(array $input): ?array
+    {
+        $issuanceId = (int)($input['issuance_id'] ?? 0);
+        $amount = isset($input['amount']) ? (float)$input['amount'] : null;
+        if ($issuanceId <= 0 || $amount === null) {
+            throw new InvalidArgumentException('missing_fields');
+        }
+
+        $stmt = db()->prepare('SELECT bi.id, bi.patient_id, bi.payment_status FROM blood_issuance bi WHERE bi.id = ? LIMIT 1');
+        $stmt->bind_param('i', $issuanceId);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if (!$row) {
+            throw new InvalidArgumentException('issuance_not_found');
+        }
+
+        $status = strtolower((string)($row['payment_status'] ?? 'pending'));
+        $billingStatus = $status === 'paid' ? 'paid' : ($status === 'free/charity' ? 'void' : 'unpaid');
+        $discount = $billingStatus === 'void' ? $amount : 0;
+
+        $invoice = self::nextInvoice();
+        $stmt2 = db()->prepare('INSERT INTO billing_records (invoice_no, patient_id, issuance_id, amount, discount, status) VALUES (?,?,?,?,?, ?)');
+        $stmt2->bind_param('siidds', $invoice, $row['patient_id'], $issuanceId, $amount, $discount, $billingStatus);
+        $stmt2->execute();
+        $id = $stmt2->insert_id;
+        $stmt2->close();
+
+        return self::getBill($id);
+    }
+
     public static function getIncomeTransaction(int $id): ?array
     {
         $stmt = db()->prepare('SELECT it.*, p.full_name AS patient_name, p.patient_code FROM income_transactions it LEFT JOIN patients p ON p.id = it.patient_id WHERE it.id = ? LIMIT 1');

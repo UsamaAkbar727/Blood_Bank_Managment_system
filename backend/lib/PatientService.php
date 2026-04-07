@@ -107,6 +107,24 @@ class PatientService
     public static function delete(int $id): bool
     {
         Permissions::allow('patients');
+
+        $dependencies = [
+            'blood issuances' => 'SELECT COUNT(*) AS cnt FROM blood_issuance WHERE patient_id = ?',
+            'billing records' => 'SELECT COUNT(*) AS cnt FROM billing_records WHERE patient_id = ?',
+        ];
+
+        foreach ($dependencies as $label => $sql) {
+            $check = db()->prepare($sql);
+            $check->bind_param('i', $id);
+            $check->execute();
+            $row = $check->get_result()->fetch_assoc();
+            $check->close();
+
+            if (!empty($row['cnt'])) {
+                throw new RuntimeException('patient_has_' . str_replace(' ', '_', $label));
+            }
+        }
+
         $stmt = db()->prepare('DELETE FROM patients WHERE id=?');
         $stmt->bind_param('i', $id);
         $stmt->execute();
@@ -133,10 +151,10 @@ class PatientService
         $sql = 'SELECT p.*, p.full_name AS name, p.contact AS phone, p.hospital_name AS ward_name, 
                        TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) AS computed_age
                 FROM patients p
-                WHERE p.full_name LIKE ? OR p.patient_code LIKE ? OR p.blood_group LIKE ? OR p.contact LIKE ? OR p.hospital_name LIKE ?
+                WHERE p.full_name LIKE ? OR p.patient_code LIKE ? OR p.blood_group LIKE ? OR p.contact LIKE ? OR p.hospital_name LIKE ? OR CAST(p.hospital_id AS CHAR) LIKE ?
                 ORDER BY p.created_at DESC LIMIT 200';
         $stmt = db()->prepare($sql);
-        $stmt->bind_param('sssss', $like, $like, $like, $like, $like);
+        $stmt->bind_param('ssssss', $like, $like, $like, $like, $like, $like);
         $stmt->execute();
         $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $stmt->close();

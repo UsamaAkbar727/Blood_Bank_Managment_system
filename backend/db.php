@@ -87,6 +87,34 @@ function ensureAppSchema(mysqli $conn): void
         }
     }
 
+    $hasBloodIssuance = $conn->query("SHOW TABLES LIKE 'blood_issuance'");
+    if ($hasBloodIssuance && $hasBloodIssuance->num_rows > 0) {
+        $bloodIssuanceColumns = [
+            'price' => 'ALTER TABLE blood_issuance ADD COLUMN price DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER status',
+            'payment_status' => "ALTER TABLE blood_issuance ADD COLUMN payment_status ENUM('Paid','Pending','Free/Charity') NOT NULL DEFAULT 'Pending' AFTER price",
+            'is_exchange' => 'ALTER TABLE blood_issuance ADD COLUMN is_exchange BOOLEAN NOT NULL DEFAULT 0 AFTER payment_status',
+            'exchange_reference' => 'ALTER TABLE blood_issuance ADD COLUMN exchange_reference VARCHAR(120) NULL AFTER is_exchange',
+        ];
+        foreach ($bloodIssuanceColumns as $column => $sql) {
+            $hasColumn = $conn->query("SHOW COLUMNS FROM blood_issuance LIKE '" . $conn->real_escape_string($column) . "'");
+            if ($hasColumn && $hasColumn->num_rows === 0) {
+                $conn->query($sql);
+            }
+        }
+    }
+
+    $hasScreeningTests = $conn->query("SHOW TABLES LIKE 'screening_tests'");
+    if ($hasScreeningTests && $hasScreeningTests->num_rows > 0) {
+        $hasResultStatus = $conn->query("SHOW COLUMNS FROM screening_tests LIKE 'result_status'");
+        if ($hasResultStatus && $hasResultStatus->num_rows > 0) {
+            $conn->query("ALTER TABLE screening_tests MODIFY COLUMN result_status ENUM('pending','safe','rejected') NOT NULL DEFAULT 'pending'");
+        }
+        $hasManualStatus = $conn->query("SHOW COLUMNS FROM screening_tests LIKE 'manual_status'");
+        if ($hasManualStatus && $hasManualStatus->num_rows > 0) {
+            $conn->query("ALTER TABLE screening_tests MODIFY COLUMN manual_status ENUM('pending','safe','rejected') NOT NULL DEFAULT 'pending'");
+        }
+    }
+
     $conn->query(
         "CREATE TABLE IF NOT EXISTS settings_expiry_rules (
             component ENUM('Whole Blood','PRBC','Platelets','FFP','Plasma','Cryo') NOT NULL PRIMARY KEY,
