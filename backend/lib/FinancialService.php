@@ -56,12 +56,17 @@ class FinancialService
         $billingStatus = $status === 'paid' ? 'paid' : ($status === 'free/charity' ? 'void' : 'unpaid');
         $discount = $billingStatus === 'void' ? $amount : 0;
 
-        $invoice = self::nextInvoice();
+        $placeholder = 'TMP-' . uniqid('', true);
         $stmt2 = db()->prepare('INSERT INTO billing_records (invoice_no, patient_id, issuance_id, amount, discount, status) VALUES (?,?,?,?,?, ?)');
-        $stmt2->bind_param('siidds', $invoice, $row['patient_id'], $issuanceId, $amount, $discount, $billingStatus);
+        $stmt2->bind_param('siidds', $placeholder, $row['patient_id'], $issuanceId, $amount, $discount, $billingStatus);
         $stmt2->execute();
         $id = $stmt2->insert_id;
         $stmt2->close();
+        $invoice = self::buildInvoiceNo($id);
+        $stmt3 = db()->prepare('UPDATE billing_records SET invoice_no = ? WHERE id = ?');
+        $stmt3->bind_param('si', $invoice, $id);
+        $stmt3->execute();
+        $stmt3->close();
 
         return self::getBill($id);
     }
@@ -162,14 +167,10 @@ class FinancialService
     }
 
     /* Billing */
-    private static function nextInvoice(): string
+    private static function buildInvoiceNo(int $billingId, ?string $issuedOn = null): string
     {
-        $prefix = 'INV-' . date('Ymd') . '-';
-        $stmt = db()->prepare('SELECT COUNT(*) FROM billing_records WHERE issued_on >= CURDATE()');
-        $stmt->execute();
-        $count = $stmt->get_result()->fetch_row()[0] ?? 0;
-        $stmt->close();
-        return $prefix . str_pad((string)($count + 1), 4, '0', STR_PAD_LEFT);
+        $datePart = $issuedOn ? date('Ymd', strtotime($issuedOn)) : date('Ymd');
+        return 'INV-' . $datePart . '-' . str_pad((string)$billingId, 4, '0', STR_PAD_LEFT);
     }
 
     public static function createBill(array $input): array
@@ -190,12 +191,17 @@ class FinancialService
         if (!$row) {
             throw new InvalidArgumentException('issuance_not_found');
         }
-        $invoice = self::nextInvoice();
+        $placeholder = 'TMP-' . uniqid('', true);
         $stmt2 = db()->prepare('INSERT INTO billing_records (invoice_no, patient_id, issuance_id, amount, discount, status) VALUES (?,?,?,?,?, "unpaid")');
-        $stmt2->bind_param('siidd', $invoice, $row['patient_id'], $issuanceId, $amount, $discount);
+        $stmt2->bind_param('siidd', $placeholder, $row['patient_id'], $issuanceId, $amount, $discount);
         $stmt2->execute();
         $id = $stmt2->insert_id;
         $stmt2->close();
+        $invoice = self::buildInvoiceNo($id);
+        $stmt3 = db()->prepare('UPDATE billing_records SET invoice_no = ? WHERE id = ?');
+        $stmt3->bind_param('si', $invoice, $id);
+        $stmt3->execute();
+        $stmt3->close();
         return self::getBill($id);
     }
 

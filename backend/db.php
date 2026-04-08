@@ -178,6 +178,39 @@ function ensureAppSchema(mysqli $conn): void
             drive_credentials_path = VALUES(drive_credentials_path)"
     );
 
+    $conn->query(
+        "CREATE TABLE IF NOT EXISTS billing_records (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            invoice_no VARCHAR(50) NOT NULL UNIQUE,
+            patient_id INT UNSIGNED NOT NULL,
+            issuance_id INT UNSIGNED NOT NULL,
+            amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+            discount DECIMAL(12,2) NOT NULL DEFAULT 0,
+            status ENUM('unpaid','paid','void') NOT NULL DEFAULT 'unpaid',
+            issued_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            paid_on TIMESTAMP NULL DEFAULT NULL,
+            KEY idx_billing_patient (patient_id),
+            KEY idx_billing_issuance (issuance_id),
+            KEY idx_billing_status (status)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
+    $conn->query(
+        "CREATE TABLE IF NOT EXISTS income_transactions (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            source_type VARCHAR(50) NOT NULL,
+            source_id INT UNSIGNED NOT NULL,
+            patient_id INT UNSIGNED NULL,
+            description VARCHAR(255) NOT NULL,
+            amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+            transaction_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            recorded_by INT UNSIGNED NOT NULL,
+            KEY idx_income_source (source_type, source_id),
+            KEY idx_income_patient (patient_id),
+            KEY idx_income_recorded_by (recorded_by)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
     $hasPatients = $conn->query("SHOW TABLES LIKE 'patients'");
     if ($hasPatients && $hasPatients->num_rows > 0) {
         $patientColumns = [
