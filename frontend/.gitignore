@@ -45,4 +45,9 @@ vendor/
 
 # OS files
 *.swp
-*.swo
+*.swotoken.json
+credentials.json
+backend/.env
+frontend/.env
+backend/service-account.json
+api/reports/.google_drive_token.json
