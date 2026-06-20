@@ -80,7 +80,7 @@ export default function Backups() {
   return (
     <div className="space-y-5 page-stagger">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
-      <PageHeader icon={CloudUpload} title="Backups" subtitle="Automatic daily backups — retention: latest 3 kept">
+      <PageHeader icon={CloudUpload} title="Backups" subtitle="Automatic daily backups - retention: latest 3 kept">
         <button
             type="button"
             onClick={connectDrive}

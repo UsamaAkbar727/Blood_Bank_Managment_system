@@ -156,7 +156,7 @@ export default function LoginPage() {
           </button>
         </form>
         <button type="button" onClick={() => setCurrentPage('welcome')} className="mt-4 text-xs text-slate-400 hover:text-brand-600 transition">
-          ← Back
+          Back
         </button>
       </div>
       <BottomWave gradId="bw-signin" h={50} />
@@ -209,7 +209,7 @@ export default function LoginPage() {
           </div>
         </div>
         <button type="button" onClick={() => setCurrentPage('welcome')} className="mt-3 text-xs text-slate-400 hover:text-brand-600 transition">
-          ← Back
+          Back
         </button>
       </div>
       <BottomWave gradId="bw-login" h={50} />
@@ -218,9 +218,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-mesh">
-      <div className="absolute -top-32 -left-32 w-96 h-96 bg-brand-400 rounded-full opacity-[0.12] blur-[80px] pointer-events-none" />
-      <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-brand-600 rounded-full opacity-[0.1] blur-[80px] pointer-events-none" />
-
       {currentPage === 'welcome' && <WelcomePage />}
       {currentPage === 'signin' && <SignInPage />}
       {currentPage === 'login' && <LoginForm />}

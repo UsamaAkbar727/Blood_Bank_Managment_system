@@ -73,8 +73,8 @@ export default {
         },
       },
       backgroundImage: {
-        'mesh': 'radial-gradient(at 40% 20%, rgba(225,29,72,0.08) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(99,102,241,0.06) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(225,29,72,0.05) 0px, transparent 50%)',
-        'sidebar-gradient': 'linear-gradient(180deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)',
+        'mesh': 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 48%, #fff7f8 100%)',
+        'sidebar-gradient': 'linear-gradient(180deg, #111827 0%, #172033 48%, #2a111d 100%)',
       },
     },
   },

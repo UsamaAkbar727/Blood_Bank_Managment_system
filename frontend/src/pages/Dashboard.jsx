@@ -123,7 +123,7 @@ export default function Dashboard() {
           title="Recent Collections"
           action={
             <Link to="/collections" className="link-brand">
-              View all →
+              View all
             </Link>
           }
         >
@@ -132,7 +132,7 @@ export default function Dashboard() {
               <div key={row.id} className="py-3 text-sm flex items-center justify-between group">
                 <div>
                   <div className="font-semibold text-slate-800 group-hover:text-brand-600 transition-colors">{row.collection_code}</div>
-                  <div className="text-xs text-slate-500 mt-0.5">{row.donor_name || 'Donor'} · {row.blood_group}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">{row.donor_name || 'Donor'} / {row.blood_group}</div>
                 </div>
                 <div className="text-xs text-slate-400 font-medium">{row.collection_date}</div>
               </div>
@@ -145,7 +145,7 @@ export default function Dashboard() {
           title="Expiring Soon"
           action={
             <Link to="/inventory" className="link-brand">
-              Manage →
+              Manage
             </Link>
           }
         >

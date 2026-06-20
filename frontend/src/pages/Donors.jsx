@@ -238,7 +238,7 @@ export default function Donors() {
               {loading && (
                 <tr>
                   <td className="px-4 py-3 text-slate-500" colSpan={7}>
-                    Loading…
+                    Loading...
                   </td>
                 </tr>
               )}

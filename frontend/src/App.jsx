@@ -24,7 +24,7 @@ function ProtectedRoute({ children }) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-mesh">
         <div className="loader-drops" />
-        <p className="text-sm font-medium text-slate-500 animate-pulse-soft">Checking session…</p>
+        <p className="text-sm font-medium text-slate-500 animate-pulse-soft">Checking session...</p>
       </div>
     );
   }

@@ -123,20 +123,20 @@ function Sidebar() {
   };
 
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 w-64 h-screen flex-col bg-sidebar-gradient shadow-sidebar z-20 border-r border-white/5">
-      <div className="px-5 py-6 border-b border-white/10 flex-shrink-0">
+    <aside className="hidden md:flex fixed left-0 top-0 w-64 h-screen flex-col bg-sidebar-gradient shadow-sidebar z-20 border-r border-white/10">
+      <div className="px-5 py-5 border-b border-white/10 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-glow-brand">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-glow-brand ring-1 ring-white/15">
             <Droplet size={20} className="text-white" fill="currentColor" strokeWidth={0} />
           </div>
           <div>
             <div className="text-base font-bold text-white tracking-tight">Blood Bank</div>
-            <div className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[140px]">{user?.username || 'User'}</div>
+            <div className="text-[11px] text-slate-300 mt-0.5 truncate max-w-[140px]">{user?.username || 'User'}</div>
           </div>
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5 scrollbar-thin">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1 scrollbar-thin">
         {modules.map((item) =>
           item.key === 'finance' ? (
             <FinanceNav
@@ -155,7 +155,7 @@ function Sidebar() {
         <button
           type="button"
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-red-500/20 text-slate-300 hover:text-red-300 text-sm py-2.5 rounded-xl transition-all duration-200 font-medium border border-white/10 hover:border-red-500/30"
+          className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-red-500/20 text-slate-300 hover:text-red-300 text-sm py-2.5 rounded-lg transition-all duration-200 font-medium border border-white/10 hover:border-red-500/30"
         >
           <LogOut size={16} />
           Logout
@@ -196,7 +196,7 @@ function MobileNav({ open, onClose }) {
       >
         <div className="px-5 py-5 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center ring-1 ring-white/15">
               <Droplet size={18} className="text-white" fill="currentColor" strokeWidth={0} />
             </div>
             <div className="text-base font-bold text-white">Blood Bank</div>
@@ -204,7 +204,7 @@ function MobileNav({ open, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
             aria-label="Close navigation"
           >
             <X size={20} />
@@ -235,7 +235,7 @@ function TopBar({ onMenu }) {
   const initials = (user?.full_name || user?.username || '?').slice(0, 2).toUpperCase();
 
   return (
-    <header className="sticky top-0 z-10 bg-white/100 backdrop-blur-xl border-b border-slate-200/80 px-4 md:px-6 py-3 flex items-center justify-between gap-3 flex-wrap">
+    <header className="sticky top-0 z-10 bg-white/95 backdrop-blur-xl border-b border-slate-200/80 px-4 md:px-6 py-3 flex items-center justify-between gap-3 flex-wrap">
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -246,7 +246,7 @@ function TopBar({ onMenu }) {
           <Menu size={20} />
         </button>
         <div className="md:hidden flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center ring-1 ring-brand-200">
             <Droplet size={14} className="text-white" fill="currentColor" strokeWidth={0} />
           </div>
           <span className="text-base font-bold text-slate-900">Blood Bank</span>
@@ -257,7 +257,7 @@ function TopBar({ onMenu }) {
           <div className="font-semibold text-slate-800">{user?.full_name || user?.username}</div>
           <div className="text-xs text-slate-500">{user?.role || 'Staff'}</div>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-100 to-brand-200 text-brand-700 flex items-center justify-center font-bold text-sm ring-2 ring-brand-200/50 shadow-sm">
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand-100 to-brand-200 text-brand-700 flex items-center justify-center font-bold text-sm ring-2 ring-brand-200/50 shadow-sm">
           {initials}
         </div>
       </div>
@@ -274,7 +274,7 @@ export function Shell() {
       <MobileNav open={mobileOpen} onClose={() => setMobileOpen(false)} />
       <div className="flex flex-col flex-1 md:ml-64 h-screen overflow-y-auto">
         <TopBar onMenu={() => setMobileOpen(true)} />
-        <main className="p-4 md:p-6 space-y-5 page-enter">
+        <main className="w-full max-w-[1600px] p-4 md:p-6 space-y-5 page-enter">
           <Outlet />
         </main>
       </div>
