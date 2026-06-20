@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { CloudUpload } from 'lucide-react';
 import { request, classNames } from '../lib/api';
 import Toast from '../components/Toast';
+import { PageHeader, SectionCard, useScrollReveal } from '../components/UI';
 
 function formatSize(bytes) {
   if (!bytes) return '0 B';
@@ -10,6 +12,7 @@ function formatSize(bytes) {
 }
 
 export default function Backups() {
+  useScrollReveal();
   const [rows, setRows] = useState([]);
   const [message, setMessage] = useState('');
   const [running, setRunning] = useState(false);
@@ -75,15 +78,10 @@ export default function Backups() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5 page-stagger">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
-      <div className="card p-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h3 className="font-semibold text-slate-900">Automatic Daily Backups</h3>
-          <p className="text-sm text-slate-500">Retention: Only the latest 3 backups are kept.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3 lg:justify-end">
-          <button
+      <PageHeader icon={CloudUpload} title="Backups" subtitle="Automatic daily backups — retention: latest 3 kept">
+        <button
             type="button"
             onClick={connectDrive}
             disabled={driveLoading}
@@ -107,24 +105,20 @@ export default function Backups() {
             </span>
           </button>
           <button
+            type="button"
             onClick={backupNow}
             disabled={running}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-60"
+            className="btn-primary disabled:opacity-60"
           >
             {running ? 'Backing up...' : 'Backup Now'}
           </button>
-        </div>
-      </div>
+      </PageHeader>
       {driveError && <div className="text-sm text-red-600">{driveError}</div>}
 
-      <div className="card p-4">
-        <div className="flex items-center justify-between mb-2">
-          <h4 className="font-semibold text-slate-900">Recent Backups</h4>
-          <span className="text-xs text-slate-500">Most recent first, max 3 rows</span>
-        </div>
+      <SectionCard title="Recent Backups" action={<span className="badge-neutral">Max 3 rows</span>}>
         <div className="table-responsive overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600 text-left">
+          <table className="table-premium">
+              <thead>
               <tr>
                 <th className="px-4 py-2">Date</th>
                 <th className="px-4 py-2">File</th>
@@ -181,7 +175,7 @@ export default function Backups() {
           </table>
         </div>
         {message && <div className="text-sm text-slate-600 mt-2">{message}</div>}
-      </div>
+      </SectionCard>
     </div>
   );
 }

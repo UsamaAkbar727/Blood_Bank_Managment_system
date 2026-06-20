@@ -11,8 +11,9 @@ export default defineConfig(({ mode }) => {
       port: Number(env.VITE_DEV_PORT || 5173),
       proxy: {
         '/api': {
-          target: env.VITE_API_PROXY_TARGET || 'http://localhost:8080',
+          target: env.VITE_API_PROXY_TARGET || 'http://localhost',
           changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, env.VITE_API_PROXY_BASE || '/Blood Bank Management System/api'),
         },
       },
     },

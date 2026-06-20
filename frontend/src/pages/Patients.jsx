@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { UserRound, Plus } from 'lucide-react';
 import { request } from '../lib/api';
 import Modal from '../components/Modal';
 import Toast from '../components/Toast';
+import { PageHeader, useScrollReveal } from '../components/UI';
 
 const blankForm = {
   id: null,
@@ -17,6 +19,7 @@ const blankForm = {
 };
 
 export default function Patients() {
+  useScrollReveal();
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(blankForm);
   const [search, setSearch] = useState('');
@@ -124,41 +127,41 @@ export default function Patients() {
   const filtered = useMemo(() => rows, [rows]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5 page-stagger">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
-      <div className="card p-4 flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">Patients</h2>
-          <p className="text-sm text-slate-500">Central record of transfusion recipients and their issuance history.</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              load(e.target.value);
-            }}
-            placeholder="Search by name, ID, blood group, contact"
-            className="w-full md:w-80 border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
-            onClick={() => {
-              setForm(blankForm);
-              setError('');
-              setOpen(true);
-            }}
-          >
-            Add Patient
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        icon={UserRound}
+        title="Patients"
+        subtitle="Central record of transfusion recipients and their issuance history"
+      >
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            load(e.target.value);
+          }}
+          placeholder="Search by name, ID, blood group, contact"
+          className="input-field w-full md:w-80"
+        />
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => {
+            setForm(blankForm);
+            setError('');
+            setOpen(true);
+          }}
+        >
+          <Plus size={16} />
+          Add Patient
+        </button>
+      </PageHeader>
 
       <div className="card p-0 overflow-hidden">
         <div className="table-responsive overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600 text-left">
+          <table className="table-premium">
+              <thead>
               <tr>
                 <th className="px-4 py-2">Patient Name / ID</th>
                 <th className="px-4 py-2">Blood Group</th>
@@ -185,13 +188,13 @@ export default function Patients() {
                     {row.age || row.computed_age ? ` / ${row.age || row.computed_age}` : ''}
                   </td>
                   <td className="px-4 py-2 text-right space-x-2">
-                    <button className="text-slate-600 text-sm" onClick={() => openPatient(row)}>
+                    <button className="btn-ghost" onClick={() => openPatient(row)}>
                       History
                     </button>
-                    <button className="text-blue-600 text-sm" onClick={() => edit(row)}>
+                    <button className="btn-ghost" onClick={() => edit(row)}>
                       Edit
                     </button>
-                    <button className="text-red-600 text-sm" onClick={() => remove(row.id)}>
+                    <button className="btn-danger" onClick={() => remove(row.id)}>
                       Delete
                     </button>
                   </td>
@@ -273,14 +276,14 @@ export default function Patients() {
             <input className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2" value={form.medical_history} onChange={(e) => setForm({ ...form, medical_history: e.target.value })} />
           </div>
           <div className="flex gap-2 justify-end">
-            <button type="button" className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm" onClick={() => { setForm(blankForm); setError(''); setOpen(false); }}>
+            <button type="button" className="btn-secondary" onClick={() => { setForm(blankForm); setError(''); setOpen(false); }}>
               Cancel
             </button>
-            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
+            <button type="submit" className="btn-primary">
               {form.id ? 'Update' : 'Save'}
             </button>
           </div>
-          {error && <div className="text-red-600 text-sm">{error}</div>}
+          {error && <div className="btn-danger">{error}</div>}
         </form>
       </Modal>
 

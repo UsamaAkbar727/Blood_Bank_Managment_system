@@ -1,10 +1,13 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Bell, Plus } from 'lucide-react';
 import { request, timeAgo } from '../lib/api';
 import { useAuth } from '../components/AuthProvider';
 import Modal from '../components/Modal';
 import Toast from '../components/Toast';
+import { PageHeader, useScrollReveal } from '../components/UI';
 
 export default function Notifications() {
+  useScrollReveal();
   const { user } = useAuth();
   const [rows, setRows] = useState([]);
   const [filterUnread, setFilterUnread] = useState(false);
@@ -73,33 +76,28 @@ export default function Notifications() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 page-stagger">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
-      <div className="card p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h3 className="font-semibold text-slate-900">Notifications</h3>
-          <label className="flex items-center gap-2 text-sm text-slate-600">
-            <input
-              type="checkbox"
-              checked={filterUnread}
-              onChange={(e) => setFilterUnread(e.target.checked)}
-              className="h-4 w-4"
-            />
-            Unread only
-          </label>
-        </div>
-        <button
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
-          onClick={() => setOpen(true)}
-        >
+      <PageHeader icon={Bell} title="Notifications" subtitle="Alerts and system messages">
+        <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={filterUnread}
+            onChange={(e) => setFilterUnread(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+          />
+          Unread only
+        </label>
+        <button type="button" className="btn-primary" onClick={() => setOpen(true)}>
+          <Plus size={16} />
           New Notification
         </button>
-      </div>
+      </PageHeader>
 
-      <div className="card p-4 divide-y divide-slate-100">
+      <div className="card-3d p-4 divide-y divide-slate-100 scroll-reveal">
         {rows.map((n) => (
-          <div key={n.id} className="py-3 flex items-start gap-3">
-            <div className={`mt-1 h-2 w-2 rounded-full ${n.is_read ? 'bg-slate-300' : 'bg-blue-500'}`} />
+          <div key={n.id} className="py-4 flex items-start gap-3 group transition-colors hover:bg-brand-50/30 -mx-4 px-4 rounded-xl">
+            <div className={`mt-1.5 h-2.5 w-2.5 rounded-full shrink-0 ${n.is_read ? 'bg-slate-300' : 'bg-brand-500 shadow-glow-brand animate-pulse-soft'}`} />
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-semibold text-slate-900">{n.title}</div>
@@ -177,11 +175,11 @@ export default function Notifications() {
               />
             </div>
           </div>
-          {error && <div className="text-red-600 text-sm">{error}</div>}
+          {error && <div className="btn-danger">{error}</div>}
           <div className="flex gap-2 justify-end">
             <button
               type="button"
-              className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm"
+              className="btn-secondary"
               onClick={() => {
                 setOpen(false);
                 setCompose({ title: '', message: '', type: 'info', user_id: '' });
@@ -190,7 +188,7 @@ export default function Notifications() {
             >
               Cancel
             </button>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm" type="submit">
+            <button className="btn-primary" type="submit">
               Send Notification
             </button>
           </div>

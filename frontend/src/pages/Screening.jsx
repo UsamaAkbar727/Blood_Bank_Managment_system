@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { FlaskConical, Plus } from 'lucide-react';
 import Modal from '../components/Modal';
 import Toast from '../components/Toast';
+import { PageHeader, StatCard, useScrollReveal } from '../components/UI';
 import { classNames, request } from '../lib/api';
 
 const TEST_FIELDS = [
@@ -37,6 +39,7 @@ function statusTone(status) {
 }
 
 export default function Screening() {
+  useScrollReveal();
   const [rows, setRows] = useState([]);
   const [collections, setCollections] = useState([]);
   const [search, setSearch] = useState('');
@@ -220,32 +223,22 @@ export default function Screening() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 page-stagger">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
 
-      <section className="grid gap-3 md:grid-cols-4">
-        <div className="card p-4">
-          <div className="text-sm text-slate-500">Total Records</div>
-          <div className="mt-2 text-2xl font-semibold text-slate-900">{summary.total}</div>
-        </div>
-        <div className="card p-4">
-          <div className="text-sm text-slate-500">Safe Units</div>
-          <div className="mt-2 text-2xl font-semibold text-emerald-700">{summary.safe}</div>
-        </div>
-        <div className="card p-4">
-          <div className="text-sm text-slate-500">Rejected Units</div>
-          <div className="mt-2 text-2xl font-semibold text-rose-700">{summary.rejected}</div>
-        </div>
-        <div className="card p-4">
-          <div className="text-sm text-slate-500">Pending Review</div>
-          <div className="mt-2 text-2xl font-semibold text-amber-700">{summary.pending}</div>
-        </div>
+      <PageHeader icon={FlaskConical} title="Screening" subtitle="Lab results, disease flags, and blood group confirmation" />
+
+      <section className="grid gap-4 md:grid-cols-4">
+        <StatCard title="Total Records" value={summary.total} tone="blue" icon={FlaskConical} />
+        <StatCard title="Safe Units" value={summary.safe} tone="green" badge="cleared" />
+        <StatCard title="Rejected Units" value={summary.rejected} tone="red" badge="flagged" />
+        <StatCard title="Pending Review" value={summary.pending} tone="amber" badge="awaiting" />
       </section>
 
-      <section className="card p-4 flex items-center justify-between gap-2 flex-wrap">
+      <div className="page-header no-animate">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Result History</h2>
-          <p className="text-sm text-slate-500">Track screening status, disease flags, and confirmed blood groups.</p>
+          <h2 className="text-base font-bold text-slate-900">Result History</h2>
+          <p className="text-sm text-slate-500 mt-0.5">Track screening status, disease flags, and confirmed blood groups</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <input
@@ -256,21 +249,19 @@ export default function Screening() {
               load(event.target.value);
             }}
             placeholder="Search by collection, donor, or status"
-            className="w-full md:w-80 border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            className="input-field w-full md:w-80"
           />
-          <button
-            className="px-4 py-2 rounded-lg text-sm transition-colors bg-blue-600 hover:bg-blue-700 text-white"
-            onClick={openCreate}
-          >
-            Add Screening Record
+          <button type="button" className="btn-primary" onClick={openCreate}>
+            <Plus size={16} />
+            Add Record
           </button>
         </div>
-      </section>
+      </div>
 
       <section className="card p-0 overflow-hidden">
         <div className="table-responsive overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600 text-left">
+          <table className="table-premium">
+              <thead>
               <tr>
                 <th className="px-4 py-3">Collection</th>
                 <th className="px-4 py-3">Donor</th>
@@ -305,10 +296,10 @@ export default function Screening() {
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">{row.test_date}</td>
                     <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
-                      <button className="text-blue-600 text-sm" onClick={() => edit(row.id)}>
+                      <button className="btn-ghost" onClick={() => edit(row.id)}>
                         Edit
                       </button>
-                      <button className="text-red-600 text-sm" onClick={() => remove(row.id)}>
+                      <button className="btn-danger" onClick={() => remove(row.id)}>
                         Delete
                       </button>
                     </td>
@@ -488,7 +479,7 @@ export default function Screening() {
           <div className="flex gap-2 justify-end">
             <button
               type="button"
-              className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm"
+              className="btn-secondary"
               onClick={handleModalClose}
             >
               Cancel
@@ -496,7 +487,7 @@ export default function Screening() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              className="btn-primary disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Saving...' : form.id ? 'Update' : 'Save'}
             </button>

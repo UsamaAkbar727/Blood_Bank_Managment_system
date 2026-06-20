@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { HeartHandshake, Plus } from 'lucide-react';
 import { request } from '../lib/api';
 import Modal from '../components/Modal';
 import Toast from '../components/Toast';
+import { PageHeader, useScrollReveal } from '../components/UI';
 
 const blankForm = {
   id: null,
@@ -22,6 +24,7 @@ const blankForm = {
 };
 
 export default function Donors() {
+  useScrollReveal();
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(blankForm);
   const [search, setSearch] = useState('');
@@ -148,38 +151,37 @@ export default function Donors() {
   const filtered = useMemo(() => rows, [rows]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5 page-stagger">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
-      <div className="card p-4 flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-lg font-semibold text-slate-900">Donors</h2>
-        <div className="flex items-center gap-2 flex-wrap">
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              load(e.target.value);
-            }}
-            placeholder="Search by name, code, CNIC, blood"
-            className="w-full md:w-80 border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
-            onClick={() => {
-              setForm(blankForm);
-              setError('');
-              setOpen(true);
-            }}
-          >
-            Add Donor
-          </button>
-        </div>
-      </div>
+      <PageHeader icon={HeartHandshake} title="Donors" subtitle="Manage donor records and eligibility">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            load(e.target.value);
+          }}
+          placeholder="Search by name, code, CNIC, blood"
+          className="input-field w-full md:w-80"
+        />
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => {
+            setForm(blankForm);
+            setError('');
+            setOpen(true);
+          }}
+        >
+          <Plus size={16} />
+          Add Donor
+        </button>
+      </PageHeader>
 
       <div className="card p-0 overflow-hidden">
         <div className="table-responsive overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600 text-left">
+          <table className="table-premium">
+              <thead>
               <tr>
                 <th className="px-4 py-2">Code</th>
                 <th className="px-4 py-2">Name</th>
@@ -214,13 +216,13 @@ export default function Donors() {
                     )}
                   </td>
                   <td className="px-4 py-2 text-right space-x-2">
-                    <button className="text-slate-600 text-sm" onClick={() => openHistory(row)}>
+                    <button className="btn-ghost" onClick={() => openHistory(row)}>
                       History
                     </button>
-                    <button className="text-blue-600 text-sm" onClick={() => edit(row)}>
+                    <button className="btn-ghost" onClick={() => edit(row)}>
                       Edit
                     </button>
-                    <button className="text-red-600 text-sm" onClick={() => remove(row.id)}>
+                    <button className="btn-danger" onClick={() => remove(row.id)}>
                       Delete
                     </button>
                   </td>
@@ -390,11 +392,11 @@ export default function Donors() {
               {!form.manual_hold && form.deferred_until ? ` · Until ${form.deferred_until}` : ''}
             </div>
           )}
-          {error && <div className="text-red-600 text-sm">{error}</div>}
+          {error && <div className="btn-danger">{error}</div>}
           <div className="flex gap-2 justify-end">
             <button
               type="button"
-              className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm"
+              className="btn-secondary"
               onClick={() => {
                 setForm(blankForm);
                 setError('');
@@ -405,7 +407,7 @@ export default function Donors() {
             </button>
             <button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
+              className="btn-primary"
             >
               {form.id ? 'Update' : 'Save'}
             </button>
@@ -428,8 +430,8 @@ export default function Donors() {
           {!historyLoading && historyError && <div className="text-sm text-red-600">{historyError}</div>}
           {!historyLoading && !historyError && (
             <div className="table-responsive overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-slate-50 text-slate-600 text-left">
+              <table className="table-premium">
+              <thead>
                   <tr>
                     <th className="px-4 py-2">Collection</th>
                     <th className="px-4 py-2">Date</th>
@@ -461,7 +463,7 @@ export default function Donors() {
           )}
           <div className="flex justify-end">
             <button
-              className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm"
+              className="btn-secondary"
               onClick={() => {
                 setHistoryOpen(false);
                 setHistoryRows([]);

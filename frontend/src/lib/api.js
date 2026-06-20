@@ -1,5 +1,18 @@
 import { APP_CURRENCY, APP_LOCALE } from './constants';
 
+const BASE_HREF = (() => {
+  const baseElement = document.querySelector('base');
+  if (!baseElement) return '/';
+  const href = baseElement.getAttribute('href') || '/';
+  return href.endsWith('/') ? href : `${href}/`;
+})();
+
+function buildApiPath(path) {
+  const cleanedPath = path.replace(/^\/+/, '');
+  const cleanedBase = BASE_HREF.replace(/\/+$/, '');
+  return `${cleanedBase}/${cleanedPath}`;
+}
+
 export async function request(path, { method = 'GET', body, headers = {}, ...rest } = {}) {
   const init = {
     method,
@@ -53,9 +66,9 @@ export async function request(path, { method = 'GET', body, headers = {}, ...res
 }
 
 export const api = {
-  login: (payload) => request('/api/auth/login.php', { method: 'POST', body: payload }),
-  me: () => request('/api/auth/me.php'),
-  logout: () => request('/api/auth/logout.php', { method: 'POST' }),
+  login: (payload) => request(buildApiPath('/api/auth/login.php'), { method: 'POST', body: payload }),
+  me: () => request(buildApiPath('/api/auth/me.php')),
+  logout: () => request(buildApiPath('/api/auth/logout.php'), { method: 'POST' }),
 };
 
 export function formatNumber(value) {

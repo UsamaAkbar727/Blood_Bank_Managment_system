@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ScrollText } from 'lucide-react';
 import { request } from '../lib/api';
 import Toast from '../components/Toast';
+import { PageHeader, useScrollReveal } from '../components/UI';
 
 export default function Logs() {
+  useScrollReveal();
   const [allRows, setAllRows] = useState([]);
   const [search, setSearch] = useState('');
   const [toast, setToast] = useState({ message: '', type: 'info' });
@@ -68,10 +71,9 @@ export default function Logs() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5 page-stagger">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
-      <div className="card p-4 flex items-center justify-between flex-wrap gap-3">
-        <h3 className="font-semibold text-slate-900">Audit Logs</h3>
+      <PageHeader icon={ScrollText} title="Audit Logs" subtitle="System activity and change history">
         <input
           type="search"
           value={search}
@@ -84,19 +86,18 @@ export default function Logs() {
               clearTimeout(searchDebounce.current);
             }
 
-            // Debounce server-side search while showing local filtered rows immediately
             searchDebounce.current = window.setTimeout(() => {
               load(value, { showLoading: false });
             }, 150);
           }}
           placeholder="Filter by user/action/entity"
-          className="border border-slate-200 rounded-lg px-3 py-2 w-full md:w-72"
+          className="input-field w-full md:w-72"
         />
-      </div>
+      </PageHeader>
       <div className="card p-0 overflow-hidden">
         <div className="table-responsive overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600 text-left">
+          <table className="table-premium">
+              <thead>
               <tr>
                 <th className="px-4 py-2">Time</th>
                 <th className="px-4 py-2">User</th>

@@ -456,22 +456,24 @@ export default function Issuance() {
   return (
     <div className="max-w-6xl mx-auto grid grid-cols-1 gap-5">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
-      <div className="card p-4 shadow-sm border border-slate-100 bg-white/95 backdrop-blur">
-        <div className="flex flex-col gap-4">
+      <div className="page-header no-animate">
+        <div className="flex flex-col gap-4 w-full">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Issuance</h2>
-            <p className="text-sm text-slate-500">Manage new issuances, review past activity, and generate reports.</p>
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Issuance</h2>
+            <p className="text-sm text-slate-500 mt-0.5">Manage new issuances, review past activity, and generate reports</p>
           </div>
-          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-            <div className="inline-flex rounded-2xl bg-white p-1 gap-1 self-start shadow-inner border border-slate-200">
+          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white/60 p-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="inline-flex rounded-xl bg-slate-100 p-1 gap-1 self-start">
               {issuanceViews.map((item) => (
                 <button
                   key={item.key}
                   type="button"
                   onClick={() => setActiveView(item.key)}
                   className={classNames(
-                    'px-4 py-2 rounded-xl text-sm font-medium transition-all',
-                    activeView === item.key ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900',
+                    'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                    activeView === item.key
+                      ? 'bg-white text-brand-700 shadow-sm ring-1 ring-brand-100'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50',
                   )}
                 >
                   {item.label}
@@ -683,8 +685,8 @@ export default function Issuance() {
               )}
             </div>
             <div className="table-responsive overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-slate-50 text-slate-600 text-left">
+              <table className="table-premium">
+              <thead>
                   <tr>
                     <th className="px-6 py-3 font-semibold uppercase tracking-wider text-[10px]">Unit Code</th>
                     <th className="px-6 py-3 font-semibold uppercase tracking-wider text-[10px]">Component Type</th>
@@ -765,8 +767,8 @@ export default function Issuance() {
             </button>
           </div>
           <div className="table-responsive overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-slate-600 text-left">
+            <table className="table-premium">
+              <thead>
                 <tr>
                   <th className="px-6 py-3 font-semibold uppercase tracking-wider text-[10px]">Issue Date</th>
                   <th className="px-6 py-3 font-semibold uppercase tracking-wider text-[10px]">Patient</th>
@@ -864,8 +866,8 @@ export default function Issuance() {
               {reportLoading && <span className="text-sm text-slate-500">Loading...</span>}
             </div>
             <div className="table-responsive overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-slate-50 text-slate-600 text-left">
+              <table className="table-premium">
+              <thead>
                   <tr>
                     <th className="px-6 py-3 font-semibold uppercase tracking-wider text-[10px]">Date</th>
                     <th className="px-6 py-3 font-semibold uppercase tracking-wider text-[10px] text-right">Total Issued</th>

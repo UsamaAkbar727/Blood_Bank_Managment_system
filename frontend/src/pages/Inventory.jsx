@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { Package, AlertTriangle, Clock } from 'lucide-react';
+import { PageHeader, StatCard, SectionCard, useScrollReveal } from '../components/UI';
 import { formatNumber } from '../lib/api';
 import { request } from '../lib/api';
 
 export default function Inventory() {
+  useScrollReveal();
   const [summary, setSummary] = useState([]);
   const [low, setLow] = useState([]);
   const [expiring, setExpiring] = useState([]);
@@ -36,7 +39,6 @@ export default function Inventory() {
       setSafeCollections((safeRes.data || []).length);
       setScreeningCollections((screeningRes.data || []).length);
     } catch (err) {
-      // keep UI stable if call fails
       setSafeCollections(0);
       setScreeningCollections(0);
     }
@@ -60,29 +62,19 @@ export default function Inventory() {
     return () => clearInterval(id);
   }, [search, status]);
 
+  const totalAvailable = summary.reduce((s, r) => s + (r.available || 0), 0);
+
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="card p-4">
-          <div className="text-sm text-slate-500">Available Units</div>
-          <div className="text-4xl font-semibold text-slate-900">
-            {formatNumber(summary.reduce((s, r) => s + (r.available || 0), 0))}
-          </div>
-          <div className="text-xs text-slate-500">All groups/components</div>
-        </div>
-        <div className="card p-4">
-          <div className="text-sm text-slate-500">Expiring ≤ 7 days</div>
-          <div className="text-4xl font-semibold text-amber-600">{formatNumber(expiring.length)}</div>
-          <div className="text-xs text-slate-500">Prioritize FIFO</div>
-        </div>
-        <div className="card p-4">
-          <div className="text-sm text-slate-500">Low Stock Alerts</div>
-          <div className="text-4xl font-semibold text-red-600">{formatNumber(low.length)}</div>
-          <div className="text-xs text-slate-500">Below threshold</div>
-        </div>
+    <div className="space-y-5 page-stagger">
+      <PageHeader icon={Package} title="Inventory" subtitle="Track blood units, expiry dates, and stock levels" />
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard title="Available Units" value={formatNumber(totalAvailable)} badge="all groups" tone="green" icon={Package} />
+        <StatCard title="Expiring ≤ 7 days" value={formatNumber(expiring.length)} badge="FIFO priority" tone="amber" icon={Clock} />
+        <StatCard title="Low Stock Alerts" value={formatNumber(low.length)} badge="below threshold" tone="red" icon={AlertTriangle} />
       </div>
 
-      <div className="card p-4 flex items-center justify-between gap-3 flex-wrap">
+      <div className="page-header no-animate">
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <input
             type="search"
@@ -92,7 +84,7 @@ export default function Inventory() {
               loadTable(e.target.value, status);
             }}
             placeholder="Search by code, donor, blood, component"
-            className="border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 w-full md:w-72"
+            className="input-field w-full md:w-72"
           />
           <select
             value={status}
@@ -100,7 +92,7 @@ export default function Inventory() {
               setStatus(e.target.value);
               loadTable(search, e.target.value);
             }}
-            className="border border-slate-200 rounded-lg px-3 py-2 w-full sm:w-auto"
+            className="select-field w-full sm:w-auto"
           >
             <option value="">All statuses</option>
             <option value="available">Available</option>
@@ -110,45 +102,45 @@ export default function Inventory() {
             <option value="discarded">Discarded</option>
           </select>
         </div>
-        <div className="text-xs text-slate-500">FIFO: ordered by soonest expiry</div>
+        <span className="badge-neutral">FIFO: ordered by soonest expiry</span>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <div className="lg:col-span-2 card p-0 overflow-hidden">
-          <div className="table-responsive overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-slate-600 text-left">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <SectionCard className="lg:col-span-2 p-0 overflow-hidden" title="Blood Units">
+          <div className="table-responsive overflow-x-auto -mx-5 -mb-5">
+            <table className="table-premium">
+              <thead>
                 <tr>
-                  <th className="px-4 py-2">Code</th>
-                  <th className="px-4 py-2">Component</th>
-                  <th className="px-4 py-2">Blood</th>
-                  <th className="px-4 py-2">Expiry</th>
-                  <th className="px-4 py-2">Status</th>
-                  <th className="px-4 py-2">Donor</th>
-                  <th className="px-4 py-2">Volume</th>
+                  <th>Code</th>
+                  <th>Component</th>
+                  <th>Blood</th>
+                  <th>Expiry</th>
+                  <th>Status</th>
+                  <th>Donor</th>
+                  <th>Volume</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <tr key={row.id} className="border-t border-slate-100">
-                    <td className="px-4 py-2 font-medium text-slate-800">{row.collection_code}</td>
-                    <td className="px-4 py-2">{row.component}</td>
-                    <td className="px-4 py-2">{row.blood_group}</td>
-                    <td className="px-4 py-2">{row.expiry_date}</td>
-                    <td className="px-4 py-2">
-                      <span className="px-2 py-1 rounded-full text-xs bg-slate-100 text-slate-700">{row.status}</span>
+                  <tr key={row.id}>
+                    <td className="font-semibold text-slate-800">{row.collection_code}</td>
+                    <td>{row.component}</td>
+                    <td><span className="badge-brand">{row.blood_group}</span></td>
+                    <td>{row.expiry_date}</td>
+                    <td>
+                      <span className="badge-neutral">{row.status}</span>
                     </td>
-                    <td className="px-4 py-2">{row.donor_name || ''}</td>
-                    <td className="px-4 py-2">{row.volume_ml || ''} ml</td>
+                    <td>{row.donor_name || ''}</td>
+                    <td>{row.volume_ml || ''} ml</td>
                   </tr>
                 ))}
                 {rows.length === 0 && (
                   <tr>
-                    <td className="px-4 py-3 text-slate-500" colSpan={7}>
+                    <td className="text-slate-400 text-center py-6" colSpan={7}>
                       No inventory found.
                       {safeCollections > 0 && (
                         <span className="ml-2 text-amber-600">
-                          {safeCollections} safe collection(s) exist but inventory is not yet generated in this view. Run screening conversion or refresh.
+                          {safeCollections} safe collection(s) exist but inventory is not yet generated in this view.
                         </span>
                       )}
                     </td>
@@ -157,37 +149,34 @@ export default function Inventory() {
               </tbody>
             </table>
           </div>
-        </div>
-        <div className="space-y-3">
-          <div className="card p-4">
-            <h4 className="font-semibold text-slate-900 mb-2">Low Stock</h4>
+        </SectionCard>
+
+        <div className="space-y-4">
+          <SectionCard title="Low Stock">
             <div className="divide-y divide-slate-100">
               {low.map((row, idx) => (
-                <div key={`${row.blood_group}-${idx}`} className="py-2 flex items-center justify-between text-sm">
-                  <span>
-                    {row.blood_group} {row.component}
-                  </span>
-                  <span className="text-red-600 font-semibold">{row.units}</span>
+                <div key={`${row.blood_group}-${idx}`} className="py-2.5 flex items-center justify-between text-sm">
+                  <span className="text-slate-700">{row.blood_group} {row.component}</span>
+                  <span className="badge-danger">{row.units}</span>
                 </div>
               ))}
-              {low.length === 0 && <div className="text-sm text-slate-500 py-2">No low stock alerts</div>}
+              {low.length === 0 && <div className="text-sm text-slate-400 py-2">No low stock alerts</div>}
             </div>
-          </div>
-          <div className="card p-4">
-            <h4 className="font-semibold text-slate-900 mb-2">Expiring Soon</h4>
+          </SectionCard>
+          <SectionCard title="Expiring Soon">
             <div className="divide-y divide-slate-100">
               {expiring.slice(0, 8).map((row, idx) => (
-                <div key={`${row.collection_code}-${idx}`} className="py-2 flex items-center justify-between text-sm">
+                <div key={`${row.collection_code}-${idx}`} className="py-2.5 flex items-center justify-between text-sm">
                   <div>
-                    <div className="font-medium text-slate-800">{row.collection_code}</div>
+                    <div className="font-semibold text-slate-800">{row.collection_code}</div>
                     <div className="text-xs text-slate-500">{row.blood_group}</div>
                   </div>
-                  <span className="text-amber-600 text-xs">{row.expiry_date}</span>
+                  <span className="badge-warning text-xs">{row.expiry_date}</span>
                 </div>
               ))}
-              {expiring.length === 0 && <div className="text-sm text-slate-500 py-2">No expiring units</div>}
+              {expiring.length === 0 && <div className="text-sm text-slate-400 py-2">No expiring units</div>}
             </div>
-          </div>
+          </SectionCard>
         </div>
       </div>
     </div>

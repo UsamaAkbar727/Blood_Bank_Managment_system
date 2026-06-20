@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { CircleDollarSign, Plus } from 'lucide-react';
 import { formatCurrency, request } from '../lib/api';
 import Modal from '../components/Modal';
 import Toast from '../components/Toast';
+import { PageHeader, useScrollReveal } from '../components/UI';
 
 const blankPrice = {
   component: 'Whole Blood',
@@ -18,6 +20,7 @@ const blankExpense = {
 };
 
 export default function Finance({ section = 'pricing' }) {
+  useScrollReveal();
   const [prices, setPrices] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [priceForm, setPriceForm] = useState(blankPrice);
@@ -102,27 +105,34 @@ export default function Finance({ section = 'pricing' }) {
 
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-5 page-stagger">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
 
+      <PageHeader
+        icon={CircleDollarSign}
+        title={section === 'pricing' ? 'Blood Unit Pricing' : 'Expenses'}
+        subtitle={section === 'pricing' ? 'Configure per-unit blood component costs' : 'Track operational expenses'}
+      />
+
       {section === 'pricing' && (
-        <div className="card p-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-slate-900">Blood Unit Pricing</h3>
+        <div className="card-3d p-5 no-animate">
+          <div className="flex items-center justify-end mb-3">
             <button
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm"
+              type="button"
+              className="btn-primary"
               onClick={() => {
                 setPriceForm(blankPrice);
                 setPriceError('');
                 setPriceModal(true);
               }}
             >
+              <Plus size={16} />
               Add Price
             </button>
           </div>
           <div className="table-responsive overflow-x-auto mt-2">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-slate-600 text-left">
+            <table className="table-premium">
+              <thead>
                 <tr>
                   <th className="px-3 py-2">Component</th>
                   <th className="px-3 py-2">Blood</th>
@@ -139,7 +149,7 @@ export default function Finance({ section = 'pricing' }) {
                     <td className="px-3 py-2">{formatCurrency(r.unit_cost)}</td>
                     <td className="px-3 py-2">{r.effective_from}</td>
                     <td className="px-3 py-2 text-right">
-                      <button className="text-red-600 text-sm" onClick={() => deletePrice(r.id)}>
+                      <button className="btn-danger" onClick={() => deletePrice(r.id)}>
                         Delete
                       </button>
                     </td>
@@ -159,24 +169,25 @@ export default function Finance({ section = 'pricing' }) {
       )}
 
       {section === 'expenses' && (
-        <div className="space-y-3">
-          <div className="card p-4 flex items-center justify-between">
-            <h3 className="font-semibold text-slate-900">Expenses</h3>
+        <div className="space-y-4">
+          <div className="card-3d p-5 no-animate flex items-center justify-end">
             <button
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm"
+              type="button"
+              className="btn-primary"
               onClick={() => {
                 setExpenseForm(blankExpense);
                 setExpenseError('');
                 setExpenseModal(true);
               }}
             >
+              <Plus size={16} />
               Add Expense
             </button>
           </div>
-          <div className="card p-4">
+          <div className="card-3d p-5 scroll-reveal">
             <div className="table-responsive overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-slate-50 text-slate-600 text-left">
+              <table className="table-premium">
+              <thead>
                   <tr>
                     <th className="px-4 py-2">Date</th>
                     <th className="px-4 py-2">Category</th>
@@ -193,7 +204,7 @@ export default function Finance({ section = 'pricing' }) {
                       <td className="px-4 py-2">{r.description || ''}</td>
                       <td className="px-4 py-2">{formatCurrency(r.amount)}</td>
                       <td className="px-4 py-2 text-right">
-                        <button className="text-red-600 text-sm" onClick={() => deleteExpense(r.id)}>
+                        <button className="btn-danger" onClick={() => deleteExpense(r.id)}>
                           Delete
                         </button>
                       </td>
@@ -274,11 +285,11 @@ export default function Finance({ section = 'pricing' }) {
               />
             </div>
           </div>
-          {priceError && <div className="text-red-600 text-sm">{priceError}</div>}
+          {priceError && <div className="btn-danger">{priceError}</div>}
           <div className="flex gap-2 justify-end">
             <button
               type="button"
-              className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm"
+              className="btn-secondary"
               onClick={() => {
                 setPriceForm(blankPrice);
                 setPriceError('');
@@ -287,7 +298,7 @@ export default function Finance({ section = 'pricing' }) {
             >
               Cancel
             </button>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm" type="submit">
+            <button className="btn-primary" type="submit">
               Save
             </button>
           </div>
@@ -346,11 +357,11 @@ export default function Finance({ section = 'pricing' }) {
               }}
             />
           </div>
-          {expenseError && <div className="text-red-600 text-sm">{expenseError}</div>}
+          {expenseError && <div className="btn-danger">{expenseError}</div>}
           <div className="flex gap-2 justify-end">
             <button
               type="button"
-              className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm"
+              className="btn-secondary"
               onClick={() => {
                 setExpenseForm(blankExpense);
                 setExpenseError('');
@@ -359,7 +370,7 @@ export default function Finance({ section = 'pricing' }) {
             >
               Cancel
             </button>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm" type="submit">
+            <button className="btn-primary" type="submit">
               Save
             </button>
           </div>

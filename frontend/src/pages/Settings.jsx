@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { Settings as SettingsIcon } from 'lucide-react';
 import Toast from '../components/Toast';
 import { request } from '../lib/api';
+import { PageHeader, useScrollReveal } from '../components/UI';
 
 export default function Settings() {
+  useScrollReveal();
   const [rules, setRules] = useState([]);
   const [medical, setMedical] = useState(null);
   const [backupSettings, setBackupSettings] = useState(null);
@@ -122,18 +125,30 @@ export default function Settings() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 page-stagger">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
-      <section className="card p-4 flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-900">Settings</h1>
-          <p className="text-sm text-slate-500">Manage backup schedules, cloud storage, and clinical configuration in one place.</p>
+      <PageHeader
+        icon={SettingsIcon}
+        title="Settings"
+        subtitle="Backup schedules, cloud storage, and clinical configuration"
+      >
+        <div className="inline-flex rounded-xl bg-slate-100 p-1 gap-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('backup')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'backup' ? 'btn-primary !shadow-none' : 'text-slate-600 hover:text-slate-900'}`}
+          >
+            Backup
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('clinical')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'clinical' ? 'btn-primary !shadow-none' : 'text-slate-600 hover:text-slate-900'}`}
+          >
+            Clinical
+          </button>
         </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={() => setActiveTab('backup')} className={`px-4 py-2 rounded-lg text-sm ${activeTab === 'backup' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'}`}>Backup Settings</button>
-          <button type="button" onClick={() => setActiveTab('clinical')} className={`px-4 py-2 rounded-lg text-sm ${activeTab === 'clinical' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'}`}>Clinical Settings</button>
-        </div>
-      </section>
+      </PageHeader>
 
       {activeTab === 'backup' && (
         <>
@@ -143,7 +158,7 @@ export default function Settings() {
                 <h2 className="text-lg font-semibold text-slate-900">Backup Configuration</h2>
                 <p className="text-sm text-slate-500">Set automated backup timing, Drive target, and local retention rules.</p>
               </div>
-              <button type="button" onClick={saveBackupSettings} disabled={backupSaving || backupLoading || !backupSettings} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg text-sm">
+              <button type="button" onClick={saveBackupSettings} disabled={backupSaving || backupLoading || !backupSettings} className="btn-primary disabled:opacity-60">
                 {backupSaving ? 'Saving...' : 'Save Backup Settings'}
               </button>
             </div>
@@ -191,11 +206,11 @@ export default function Settings() {
               </div>
               <div className="flex items-center gap-2">
                 {driveStatus?.auth_url && (
-                  <a className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm" href={driveStatus.auth_url} target="_blank" rel="noopener noreferrer">
+                  <a className="btn-primary" href={driveStatus.auth_url} target="_blank" rel="noopener noreferrer">
                     {driveStatus?.status?.authenticated ? 'Reconnect' : 'Connect'}
                   </a>
                 )}
-                <button type="button" onClick={disconnectDrive} disabled={driveBusy || !driveStatus?.status?.authenticated} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm disabled:opacity-60">
+                <button type="button" onClick={disconnectDrive} disabled={driveBusy || !driveStatus?.status?.authenticated} className="btn-secondary disabled:opacity-60">
                   Disconnect
                 </button>
                 <button type="button" onClick={loadDriveStatus} disabled={driveLoading} className="border border-slate-200 px-4 py-2 rounded-lg text-sm">
@@ -245,10 +260,10 @@ export default function Settings() {
               <p className="text-sm text-slate-500">Control donor eligibility rules and automated deferral windows.</p>
             </div>
             <div className="flex gap-2">
-              <button type="button" onClick={saveExpiry} disabled={loading} className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm disabled:opacity-60">
+              <button type="button" onClick={saveExpiry} disabled={loading} className="btn-secondary disabled:opacity-60">
                 {loading ? 'Saving...' : 'Save Expiry'}
               </button>
-              <button type="button" onClick={saveMedical} disabled={medicalSaving || medicalLoading || !medical} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg text-sm">
+              <button type="button" onClick={saveMedical} disabled={medicalSaving || medicalLoading || !medical} className="btn-primary disabled:opacity-60">
                 {medicalSaving ? 'Saving...' : 'Save Medical Criteria'}
               </button>
             </div>
@@ -271,8 +286,8 @@ export default function Settings() {
 
       <section className="card p-0 overflow-hidden">
         <div className="table-responsive overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600 text-left">
+          <table className="table-premium">
+              <thead>
               <tr>
                 <th className="px-4 py-3">Component</th>
                 <th className="px-4 py-3">Shelf Life (days)</th>
