@@ -684,6 +684,29 @@ export default function Issuance() {
                 </div>
               )}
             </div>
+            {selectedPatient && (
+              <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center gap-3 flex-wrap justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Compatibility Matrix Checker:</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'].map((bg) => {
+                    const patientBlood = normalizeBloodGroup(selectedPatient.blood_group);
+                    const isCompatible = (compatibility[patientBlood] || []).includes(bg);
+                    return (
+                      <span
+                        key={bg}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                          isCompatible
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            : 'bg-slate-100 text-slate-400 border border-slate-200/60 opacity-40'
+                        }`}
+                      >
+                        {bg}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div className="table-responsive overflow-x-auto">
               <table className="table-premium">
               <thead>

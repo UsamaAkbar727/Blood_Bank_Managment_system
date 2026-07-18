@@ -17,6 +17,7 @@ import Reports from './pages/Reports';
 import Logs from './pages/Logs';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
+import Campaigns from './pages/Campaigns';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="/logs" element={<Logs />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/campaigns" element={<Campaigns />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

@@ -10,6 +10,7 @@ $response = [
     'screening_results' => ReportService::screeningResults($days),
     'inventory_snapshot' => ReportService::inventorySnapshot(),
     'issuance_daily' => ReportService::issuanceDaily($days),
+    'financial_summary' => ReportService::financialSummary($days),
     'generated_at' => date('c'),
 ];
 

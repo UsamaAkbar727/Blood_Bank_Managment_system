@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { HeartHandshake, Package, FlaskConical, ArrowUpFromLine } from 'lucide-react';
+import { HeartHandshake, Package, FlaskConical, ArrowUpFromLine, AlertTriangle } from 'lucide-react';
 import { LineChart, DoughnutChart } from '../components/Charts';
 import { PageHeader, StatCard, SectionCard, useScrollReveal } from '../components/UI';
 import { formatNumber } from '../lib/api';
@@ -39,6 +39,14 @@ export default function Dashboard() {
     transform: (res) => res || {},
   });
 
+  const thresholdsData = useApiResource('/api/settings/thresholds.php', {
+    initialData: { thresholds: {}, alerts: [] },
+    interval: 15000,
+    transform: (res) => res || { thresholds: {}, alerts: [] },
+  });
+
+  const lowStockAlerts = useMemo(() => thresholdsData.data?.alerts || [], [thresholdsData.data]);
+
   const stats = useMemo(() => {
     const totalDonors = donors.data.length;
     const totalUnits = (inventorySummary.data || []).reduce((sum, row) => sum + (row.available || 0), 0);
@@ -70,6 +78,27 @@ export default function Dashboard() {
         title="Dashboard"
         subtitle="Real-time overview of blood bank operations"
       />
+
+      {lowStockAlerts.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm border-l-4 border-l-red-600 animate-pulse-soft">
+          <div className="h-8 w-8 rounded-lg bg-red-100 flex items-center justify-center text-red-600 shrink-0 mt-0.5">
+            <AlertTriangle size={18} />
+          </div>
+          <div>
+            <h4 className="font-bold text-red-800 text-sm">Critical Inventory Alert: Low Stock Levels</h4>
+            <p className="text-xs text-red-600 mt-0.5">
+              The following blood groups have fallen below their configured safety thresholds:
+            </p>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {lowStockAlerts.map((alert) => (
+                <span key={alert.blood_group} className="px-2.5 py-1 bg-red-100 text-red-800 rounded-lg text-xs font-semibold uppercase">
+                  {alert.blood_group}: {alert.current_units} units (min: {alert.min_units})
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard title="Active Donors" value={formatNumber(stats.totalDonors)} badge="live" tone="blue" icon={HeartHandshake} />

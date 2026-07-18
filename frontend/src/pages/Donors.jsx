@@ -37,6 +37,61 @@ export default function Donors() {
   const [historyError, setHistoryError] = useState('');
   const [historyDonor, setHistoryDonor] = useState(null);
   const [toast, setToast] = useState({ message: '', type: 'info' });
+  const [quizModalOpen, setQuizModalOpen] = useState(false);
+  const [quizAnswers, setQuizAnswers] = useState({
+    age: '',
+    weight: '',
+    interval: '',
+    infection: '',
+    travel: '',
+  });
+
+  const evaluateQuiz = () => {
+    let eligible = true;
+    let reason = '';
+    let until = '';
+
+    const today = new Date();
+    
+    if (quizAnswers.age === 'no') {
+      eligible = false;
+      reason = 'Age limit not met (must be 18-60)';
+    } else if (quizAnswers.weight === 'no') {
+      eligible = false;
+      reason = 'Weight below minimum threshold (50 kg)';
+    } else if (quizAnswers.interval === 'no') {
+      eligible = false;
+      reason = 'Recent donation interval not met (< 90 days)';
+      const targetDate = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
+      until = targetDate.toISOString().split('T')[0];
+    } else if (quizAnswers.infection === 'no') {
+      eligible = false;
+      reason = 'Active medical infection or antibiotic use';
+      const targetDate = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+      until = targetDate.toISOString().split('T')[0];
+    } else if (quizAnswers.travel === 'yes') {
+      eligible = false;
+      reason = 'Recent travel to malaria-endemic regions';
+      const targetDate = new Date(today.getTime() + 365 * 24 * 60 * 60 * 1000);
+      until = targetDate.toISOString().split('T')[0];
+    }
+
+    setForm({
+      ...form,
+      is_eligible: eligible,
+      manual_hold: !eligible,
+      deferral_reason: reason,
+      deferred_until: until,
+    });
+
+    setToast({
+      message: eligible ? 'Quiz passed! Donor is eligible.' : `Quiz failed: ${reason}`,
+      type: eligible ? 'success' : 'warning',
+    });
+
+    setQuizModalOpen(false);
+    setQuizAnswers({ age: '', weight: '', interval: '', infection: '', travel: '' });
+  };
 
   const load = useCallback(
     async (q = search) => {
@@ -377,15 +432,24 @@ export default function Donors() {
               />
             </div>
           </div>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={!form.manual_hold}
-              onChange={(e) => setForm({ ...form, manual_hold: !e.target.checked })}
-              className="h-4 w-4"
-            />
-            Eligible to donate (uncheck to place manual hold)
-          </label>
+          <div className="flex items-center justify-between flex-wrap gap-2 py-2 border-t border-b border-slate-100">
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={!form.manual_hold}
+                onChange={(e) => setForm({ ...form, manual_hold: !e.target.checked })}
+                className="h-4 w-4"
+              />
+              Eligible to donate (uncheck to place manual hold)
+            </label>
+            <button
+              type="button"
+              onClick={() => setQuizModalOpen(true)}
+              className="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1 transition"
+            >
+              📋 Run Eligibility Quiz
+            </button>
+          </div>
           {(form.manual_hold || !form.is_eligible) && (
             <div className="text-xs text-slate-500">
               {form.manual_hold ? 'Manual hold enabled. Eligibility will be recalculated after saving.' : (form.deferral_reason || 'Deferred')}
@@ -472,6 +536,85 @@ export default function Donors() {
               }}
             >
               Close
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Quiz Modal */}
+      <Modal
+        open={quizModalOpen}
+        onClose={() => {
+          setQuizModalOpen(false);
+          setQuizAnswers({ age: '', weight: '', interval: '', infection: '', travel: '' });
+        }}
+        title="Donor Eligibility Quiz"
+      >
+        <div className="space-y-4 text-sm text-slate-700">
+          <p className="text-xs text-slate-500 mb-2 border-b border-slate-100 pb-2">
+            Answering these questions will automatically compute the donor's medical eligibility status.
+          </p>
+
+          <div className="space-y-3">
+            <div>
+              <label className="font-medium text-slate-800 block mb-1">1. Is the donor between 18 and 60 years old?</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-1.5"><input type="radio" name="age" checked={quizAnswers.age === 'yes'} onChange={() => setQuizAnswers({ ...quizAnswers, age: 'yes' })} /> Yes</label>
+                <label className="flex items-center gap-1.5"><input type="radio" name="age" checked={quizAnswers.age === 'no'} onChange={() => setQuizAnswers({ ...quizAnswers, age: 'no' })} /> No</label>
+              </div>
+            </div>
+
+            <div>
+              <label className="font-medium text-slate-800 block mb-1">2. Does the donor weigh 50 kg or more?</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-1.5"><input type="radio" name="weight" checked={quizAnswers.weight === 'yes'} onChange={() => setQuizAnswers({ ...quizAnswers, weight: 'yes' })} /> Yes</label>
+                <label className="flex items-center gap-1.5"><input type="radio" name="weight" checked={quizAnswers.weight === 'no'} onChange={() => setQuizAnswers({ ...quizAnswers, weight: 'no' })} /> No</label>
+              </div>
+            </div>
+
+            <div>
+              <label className="font-medium text-slate-800 block mb-1">3. Has it been &gt;= 90 days since the last donation (or first time)?</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-1.5"><input type="radio" name="interval" checked={quizAnswers.interval === 'yes'} onChange={() => setQuizAnswers({ ...quizAnswers, interval: 'yes' })} /> Yes / First-time</label>
+                <label className="flex items-center gap-1.5"><input type="radio" name="interval" checked={quizAnswers.interval === 'no'} onChange={() => setQuizAnswers({ ...quizAnswers, interval: 'no' })} /> No</label>
+              </div>
+            </div>
+
+            <div>
+              <label className="font-medium text-slate-800 block mb-1">4. Is the donor currently free of active infections and antibiotics?</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-1.5"><input type="radio" name="infection" checked={quizAnswers.infection === 'yes'} onChange={() => setQuizAnswers({ ...quizAnswers, infection: 'yes' })} /> Yes</label>
+                <label className="flex items-center gap-1.5"><input type="radio" name="infection" checked={quizAnswers.infection === 'no'} onChange={() => setQuizAnswers({ ...quizAnswers, infection: 'no' })} /> No</label>
+              </div>
+            </div>
+
+            <div>
+              <label className="font-medium text-slate-800 block mb-1">5. Has the donor traveled to malaria-endemic regions in the last 12 months?</label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-1.5"><input type="radio" name="travel" checked={quizAnswers.travel === 'yes'} onChange={() => setQuizAnswers({ ...quizAnswers, travel: 'yes' })} /> Yes</label>
+                <label className="flex items-center gap-1.5"><input type="radio" name="travel" checked={quizAnswers.travel === 'no'} onChange={() => setQuizAnswers({ ...quizAnswers, travel: 'no' })} /> No</label>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 justify-end pt-3 border-t border-slate-100 mt-4">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                setQuizModalOpen(false);
+                setQuizAnswers({ age: '', weight: '', interval: '', infection: '', travel: '' });
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={evaluateQuiz}
+              disabled={!quizAnswers.age || !quizAnswers.weight || !quizAnswers.interval || !quizAnswers.infection || !quizAnswers.travel}
+            >
+              Finish & Check
             </button>
           </div>
         </div>

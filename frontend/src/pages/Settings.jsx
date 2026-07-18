@@ -9,15 +9,19 @@ export default function Settings() {
   const [rules, setRules] = useState([]);
   const [medical, setMedical] = useState(null);
   const [backupSettings, setBackupSettings] = useState(null);
+  const [thresholds, setThresholds] = useState({});
   const [error, setError] = useState('');
   const [medicalError, setMedicalError] = useState('');
   const [backupError, setBackupError] = useState('');
+  const [thresholdsError, setThresholdsError] = useState('');
   const [toast, setToast] = useState({ message: '', type: 'info' });
   const [loading, setLoading] = useState(true);
   const [medicalLoading, setMedicalLoading] = useState(true);
   const [backupLoading, setBackupLoading] = useState(true);
+  const [thresholdsLoading, setThresholdsLoading] = useState(true);
   const [medicalSaving, setMedicalSaving] = useState(false);
   const [backupSaving, setBackupSaving] = useState(false);
+  const [thresholdsSaving, setThresholdsSaving] = useState(false);
   const [driveStatus, setDriveStatus] = useState(null);
   const [driveLoading, setDriveLoading] = useState(true);
   const [driveBusy, setDriveBusy] = useState(false);
@@ -26,10 +30,11 @@ export default function Settings() {
 
   useEffect(() => {
     const load = async () => {
-      const [expiryRes, medicalRes, backupRes] = await Promise.allSettled([
+      const [expiryRes, medicalRes, backupRes, thresholdRes] = await Promise.allSettled([
         request('/api/settings/expiry.php'),
         request('/api/settings/medical.php'),
         request('/api/settings/backups.php'),
+        request('/api/settings/thresholds.php'),
       ]);
 
       if (expiryRes.status === 'fulfilled') setRules(expiryRes.value.data || []);
@@ -41,9 +46,13 @@ export default function Settings() {
       if (backupRes.status === 'fulfilled') setBackupSettings(backupRes.value.data || null);
       else setBackupError(backupRes.reason?.message || 'Failed to load backup settings.');
 
+      if (thresholdRes.status === 'fulfilled') setThresholds(thresholdRes.value.thresholds || {});
+      else setThresholdsError(thresholdRes.reason?.message || 'Failed to load stock thresholds.');
+
       setLoading(false);
       setMedicalLoading(false);
       setBackupLoading(false);
+      setThresholdsLoading(false);
     };
     load();
   }, []);
@@ -124,6 +133,20 @@ export default function Settings() {
     }
   };
 
+  const saveThresholds = async () => {
+    setThresholdsSaving(true);
+    setThresholdsError('');
+    try {
+      const res = await request('/api/settings/thresholds.php', { method: 'PUT', body: thresholds });
+      setThresholds(res.thresholds || thresholds);
+      setToast({ message: 'Stock safety thresholds updated.', type: 'success' });
+    } catch (err) {
+      setThresholdsError(err.message || 'Failed to save thresholds.');
+    } finally {
+      setThresholdsSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-5 page-stagger">
       <Toast message={toast.message} type={toast.type} onClear={() => setToast({ message: '', type: 'info' })} />
@@ -146,6 +169,13 @@ export default function Settings() {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'clinical' ? 'btn-primary !shadow-none' : 'text-slate-600 hover:text-slate-900'}`}
           >
             Clinical
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('thresholds')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'thresholds' ? 'btn-primary !shadow-none' : 'text-slate-600 hover:text-slate-900'}`}
+          >
+            Stock Thresholds
           </button>
         </div>
       </PageHeader>
@@ -281,6 +311,38 @@ export default function Settings() {
             </div>
           )}
           {medicalError && <div className="text-sm text-red-600">{medicalError}</div>}
+        </section>
+      )}
+
+      {activeTab === 'thresholds' && (
+        <section className="card p-4 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Stock Safety Thresholds</h2>
+              <p className="text-sm text-slate-500">Configure minimum required units in inventory for each blood group before triggering alerts.</p>
+            </div>
+            <button type="button" onClick={saveThresholds} disabled={thresholdsSaving || thresholdsLoading} className="btn-primary disabled:opacity-60">
+              {thresholdsSaving ? 'Saving...' : 'Save Thresholds'}
+            </button>
+          </div>
+          {thresholdsLoading && <div className="text-sm text-slate-500">Loading stock thresholds...</div>}
+          {!thresholdsLoading && thresholds && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm pt-2">
+              {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bg) => (
+                <div key={bg} className="flex flex-col gap-1">
+                  <label className="font-semibold text-slate-700">{bg} Threshold (units)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={thresholds[bg] !== undefined ? thresholds[bg] : 5}
+                    onChange={(e) => setThresholds({ ...thresholds, [bg]: Number(e.target.value) })}
+                    className="w-full border border-slate-200 rounded-lg px-3 py-2"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+          {thresholdsError && <div className="text-sm text-red-600">{thresholdsError}</div>}
         </section>
       )}
 

@@ -4,7 +4,7 @@ import {
   LayoutDashboard, HeartHandshake, UserRound, Droplets, FlaskConical,
   Package, ArrowUpFromLine, BarChart3, CircleDollarSign, Barcode,
   CloudUpload, ScrollText, Bell, Settings, LogOut, Menu, X, ChevronDown,
-  Droplet,
+  Droplet, Megaphone,
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { classNames } from '../lib/api';
@@ -17,6 +17,7 @@ const modules = [
   { key: 'screening', label: 'Screening', to: '/screening', icon: FlaskConical },
   { key: 'inventory', label: 'Inventory', to: '/inventory', icon: Package },
   { key: 'issuance', label: 'Issuance', to: '/issuance', icon: ArrowUpFromLine },
+  { key: 'campaigns', label: 'SMS Campaigns', to: '/campaigns', icon: Megaphone },
   { key: 'reports', label: 'Reports', to: '/reports', icon: BarChart3 },
   { key: 'finance', label: 'Finance', to: '/finance', icon: CircleDollarSign },
   { key: 'barcodes', label: 'Barcodes', to: '/barcodes', icon: Barcode },

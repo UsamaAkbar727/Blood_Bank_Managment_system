@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { CircleDollarSign, Plus } from 'lucide-react';
 import { formatCurrency, request } from '../lib/api';
 import Modal from '../components/Modal';
 import Toast from '../components/Toast';
 import { PageHeader, useScrollReveal } from '../components/UI';
+import { LineChart, DoughnutChart } from '../components/Charts';
 
 const blankPrice = {
   component: 'Whole Blood',
@@ -30,6 +31,7 @@ export default function Finance({ section = 'pricing' }) {
   const [priceModal, setPriceModal] = useState(false);
   const [expenseModal, setExpenseModal] = useState(false);
   const [toast, setToast] = useState({ message: '', type: 'info' });
+  const [reports, setReports] = useState(null);
 
   const loadPrices = async () => {
     const res = await request('/api/finance/pricing.php');
@@ -41,18 +43,68 @@ export default function Finance({ section = 'pricing' }) {
     setExpenses(res.data || []);
   };
 
+  const loadReports = async () => {
+    try {
+      const res = await request('/api/reports/index.php?days=30');
+      setReports(res || null);
+    } catch (e) {
+      console.error('Failed to load financial reports', e);
+    }
+  };
+
   useEffect(() => {
     loadPrices();
     loadExpenses();
+    loadReports();
   }, []);
 
   useEffect(() => {
     const id = setInterval(() => {
       loadPrices();
       loadExpenses();
+      loadReports();
     }, 15000);
     return () => clearInterval(id);
   }, []);
+
+  const stats = useMemo(() => {
+    if (!reports?.financial_summary) return { totalIncome: 0, totalExpenses: 0 };
+    const inc = (reports.financial_summary.income_trend || []).reduce((sum, row) => sum + Number(row.total || 0), 0);
+    const exp = (reports.financial_summary.expense_trend || []).reduce((sum, row) => sum + Number(row.total || 0), 0);
+    return { totalIncome: inc, totalExpenses: exp };
+  }, [reports]);
+
+  const lineData = useMemo(() => {
+    if (!reports?.financial_summary) return { labels: [], income: [], expenses: [] };
+    const incMap = {};
+    const expMap = {};
+    const daysSet = new Set();
+    
+    (reports.financial_summary.income_trend || []).forEach((row) => {
+      incMap[row.day] = Number(row.total || 0);
+      daysSet.add(row.day);
+    });
+    
+    (reports.financial_summary.expense_trend || []).forEach((row) => {
+      expMap[row.day] = Number(row.total || 0);
+      daysSet.add(row.day);
+    });
+    
+    const labels = Array.from(daysSet).sort();
+    const income = labels.map((d) => incMap[d] || 0);
+    const expenses = labels.map((d) => expMap[d] || 0);
+    
+    return { labels, income, expenses };
+  }, [reports]);
+
+  const breakdownData = useMemo(() => {
+    if (!reports?.financial_summary) return { labels: [], values: [] };
+    const list = reports.financial_summary.expense_breakdown || [];
+    return {
+      labels: list.map((i) => i.category || 'Other'),
+      values: list.map((i) => Number(i.total || 0)),
+    };
+  }, [reports]);
 
   const savePrice = async (e) => {
     e.preventDefault();
@@ -169,7 +221,65 @@ export default function Finance({ section = 'pricing' }) {
       )}
 
       {section === 'expenses' && (
-        <div className="space-y-4">
+        <div className="space-y-5">
+          {/* Visual trend charts */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="stat-card bg-gradient-to-br from-white to-emerald-50 text-slate-800" style={{ '--accent': '#059669' }}>
+              <p className="text-sm font-semibold text-slate-500">Income (Last 30 Days)</p>
+              <div className="mt-1 text-2xl font-extrabold text-slate-900">{formatCurrency(stats.totalIncome)}</div>
+            </div>
+            <div className="stat-card bg-gradient-to-br from-white to-red-50 text-slate-800" style={{ '--accent': '#dc2626' }}>
+              <p className="text-sm font-semibold text-slate-500">Expenses (Last 30 Days)</p>
+              <div className="mt-1 text-2xl font-extrabold text-slate-900">{formatCurrency(stats.totalExpenses)}</div>
+            </div>
+            <div className="stat-card bg-gradient-to-br from-white to-blue-50 text-slate-800" style={{ '--accent': '#2563eb' }}>
+              <p className="text-sm font-semibold text-slate-500">Net Cash Flow</p>
+              <div className={`mt-1 text-2xl font-extrabold ${stats.totalIncome - stats.totalExpenses >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                {formatCurrency(stats.totalIncome - stats.totalExpenses)}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+            <div className="card p-5 xl:col-span-2 shadow-sm border border-slate-100 bg-white rounded-2xl scroll-reveal">
+              <h3 className="section-title mb-4">Cash Flow Analytics (Last 30 Days)</h3>
+              <div className="h-56">
+                <LineChart
+                  labels={lineData.labels}
+                  datasets={[
+                    {
+                      label: 'Income',
+                      data: lineData.income,
+                      borderColor: '#10b981',
+                      backgroundColor: 'rgba(16,185,129,0.1)',
+                      tension: 0.4,
+                      fill: true,
+                      pointRadius: 3,
+                    },
+                    {
+                      label: 'Expenses',
+                      data: lineData.expenses,
+                      borderColor: '#ef4444',
+                      backgroundColor: 'rgba(239,68,68,0.1)',
+                      tension: 0.4,
+                      fill: true,
+                      pointRadius: 3,
+                    },
+                  ]}
+                />
+              </div>
+            </div>
+
+            <div className="card p-5 shadow-sm border border-slate-100 bg-white rounded-2xl scroll-reveal">
+              <h3 className="section-title mb-4">Expense Categories Breakdown</h3>
+              {breakdownData.values.length > 0 ? (
+                <DoughnutChart labels={breakdownData.labels} values={breakdownData.values} />
+              ) : (
+                <div className="h-48 flex items-center justify-center text-slate-400 text-sm">No expenses recorded.</div>
+              )}
+            </div>
+          </div>
+
           <div className="card-3d p-5 no-animate flex items-center justify-end">
             <button
               type="button"

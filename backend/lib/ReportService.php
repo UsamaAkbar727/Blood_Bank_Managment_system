@@ -80,4 +80,36 @@ class ReportService
 
         return (bool)$result;
     }
+
+    public static function financialSummary(int $days = 30): array
+    {
+        Permissions::allow('reports');
+
+        // 1. Daily income trend
+        $stmt1 = db()->prepare('SELECT DATE(transaction_date) AS day, SUM(amount) AS total FROM income_transactions WHERE transaction_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY) GROUP BY day ORDER BY day');
+        $stmt1->bind_param('i', $days);
+        $stmt1->execute();
+        $incomeTrend = $stmt1->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt1->close();
+
+        // 2. Daily expense trend
+        $stmt2 = db()->prepare('SELECT DATE(incurred_on) AS day, SUM(amount) AS total FROM expenses WHERE incurred_on >= DATE_SUB(CURDATE(), INTERVAL ? DAY) GROUP BY day ORDER BY day');
+        $stmt2->bind_param('i', $days);
+        $stmt2->execute();
+        $expenseTrend = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt2->close();
+
+        // 3. Expense categories breakdown
+        $stmt3 = db()->prepare('SELECT category, SUM(amount) AS total FROM expenses WHERE incurred_on >= DATE_SUB(CURDATE(), INTERVAL ? DAY) GROUP BY category');
+        $stmt3->bind_param('i', $days);
+        $stmt3->execute();
+        $expenseBreakdown = $stmt3->get_result()->fetch_all(MYSQLI_ASSOC);
+        $stmt3->close();
+
+        return [
+            'income_trend' => $incomeTrend,
+            'expense_trend' => $expenseTrend,
+            'expense_breakdown' => $expenseBreakdown,
+        ];
+    }
 }
