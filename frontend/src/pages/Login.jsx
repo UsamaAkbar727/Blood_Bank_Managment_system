@@ -11,6 +11,7 @@ function InputField({
   onChange,
   required,
   autoComplete,
+  name,
   showToggle,
   showPassword,
   onTogglePassword,
@@ -26,6 +27,7 @@ function InputField({
         </span>
         <input
           type={inputType}
+          name={name}
           className={`input-group-input ${showToggle ? 'input-group-input-pr' : ''}`}
           placeholder={placeholder}
           value={value}
@@ -175,6 +177,7 @@ export default function LoginPage() {
         <form onSubmit={onSubmit} className="w-full space-y-3.5 px-2">
           <InputField
             icon={Mail}
+            name="username"
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -183,6 +186,7 @@ export default function LoginPage() {
           />
           <InputField
             icon={Lock}
+            name="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -201,8 +205,15 @@ export default function LoginPage() {
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
-        <div className="mt-3 w-full bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-100">
-          <p className="text-[10px] text-slate-400 mb-1 text-center font-semibold uppercase tracking-wider">Default Credentials</p>
+        <div
+          onClick={() => {
+            setUsername('admin');
+            setPassword('admin123');
+          }}
+          className="mt-3 w-full bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-100 cursor-pointer hover:bg-slate-100 active:scale-[0.98] transition-all duration-200 select-none"
+          title="Click to auto-fill"
+        >
+          <p className="text-[10px] text-slate-400 mb-1 text-center font-semibold uppercase tracking-wider">Default Credentials (Click to Auto-fill)</p>
           <div className="flex justify-center gap-6 text-xs text-slate-500">
             <span>Username: <span className="font-bold text-slate-700">admin</span></span>
             <span>Password: <span className="font-bold text-slate-700">admin123</span></span>

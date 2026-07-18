@@ -29,6 +29,7 @@ function detectMimeType(string $path): string
 }
 
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+$requestPath = urldecode($requestPath);
 $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
 $basePath = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
 
