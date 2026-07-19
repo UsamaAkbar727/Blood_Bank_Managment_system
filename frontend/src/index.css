@@ -412,3 +412,54 @@ canvas {
   0%, 100% { opacity: 0.62; }
   50% { opacity: 1; }
 }
+
+/* Dashboard Premium Additions */
+.dashboard-gradient-card {
+  background: linear-gradient(135deg, #1e1b4b 0%, #31102f 50%, #4c0519 100%);
+  box-shadow: 0 20px 40px -15px rgba(76, 5, 25, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.dark-glass-panel {
+  background: rgba(15, 23, 42, 0.3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stat-card-glowing {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-card-glowing:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.08), 0 0 25px -5px var(--glow-color, rgba(225, 29, 72, 0.15));
+  border-color: var(--accent-color, #e11d48);
+}
+
+.blood-drop-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(145deg, #ffffff, #fdfdfd);
+}
+
+.blood-drop-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 28px -8px rgba(15, 23, 42, 0.08);
+  border-color: rgba(225, 29, 72, 0.25);
+}
+
+.glow-dot-online {
+  box-shadow: 0 0 8px #22c55e, 0 0 16px #22c55e;
+}
+
+.chart-container-premium {
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
