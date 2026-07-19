@@ -56,31 +56,31 @@ export default function Dashboard() {
   const donors = useApiResource('/api/donors/index.php', {
     initialData: [],
     interval: 15000,
-    transform: (res) => res.data || res,
+    transform: (res) => (Array.isArray(res) ? res : res?.data || []),
   });
 
   const inventorySummary = useApiResource('/api/inventory/index.php?action=summary', {
     initialData: [],
     interval: 12000,
-    transform: (res) => res.data || [],
+    transform: (res) => (Array.isArray(res) ? res : res?.data || []),
   });
 
   const collections = useApiResource('/api/collections/index.php', {
     initialData: [],
     interval: 12000,
-    transform: (res) => res.data || [],
+    transform: (res) => (Array.isArray(res) ? res : res?.data || []),
   });
 
   const issuance = useApiResource('/api/issuance/index.php', {
     initialData: [],
     interval: 12000,
-    transform: (res) => res.data || [],
+    transform: (res) => (Array.isArray(res) ? res : res?.data || []),
   });
 
   const reportData = useApiResource('/api/reports/index.php?days=30', {
     initialData: {},
     interval: 30000,
-    transform: (res) => res || {},
+    transform: (res) => (res && typeof res === 'object' ? (res.data || res) : {}),
   });
 
   const thresholdsData = useApiResource('/api/settings/thresholds.php', {
